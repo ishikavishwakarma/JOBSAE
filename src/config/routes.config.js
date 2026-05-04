@@ -7,6 +7,7 @@ import { JobSearchPage, JobDetailsStandalonePage } from '@/pages/jobs';
 import { AccountUserProfilePage, AccountSettingsPage } from '@/pages/account';
 import { JobseekerProfilePage } from '@/pages/account/home';
 import { PurchaseOptionsPage } from '@/pages/purchase-options';
+import { CartPage } from '@/pages/purchase-options/CartPage';
 
 // Custom Layout Routes (Mainly for Job Search)
 export const CUSTOM_LAYOUT_ROUTES = [
@@ -38,10 +39,11 @@ export const CUSTOM_LAYOUT_ROUTES = [
   { path: '/jobsnearme/company/:company/+/:country/:state/:city', element: JobSearchPage },
   { path: '/jobsnearme/industry/:industry/location/:country/:state/:city', element: JobSearchPage },
   { path: '/jobsnearme/page/:pageNo', element: JobSearchPage },
-  { path: '/jobs/search', element: JobSearchPage },
-  { path: '/jobs/details/:id', element: JobDetailsStandalonePage },
-  { path: '/company-profile', element: AccountUserProfilePage },
+  { path: '/jobs/search', element: JobSearchPage },                
+  { path: '/jobs/details/:id', element: JobDetailsStandalonePage },   
+  { path: '/company-profile', element: AccountUserProfilePage },      
   { path: '/settings/account-settings', element: AccountSettingsPage },
-  { path: '/profile', element: JobseekerProfilePage },
-  { path: '/purchase-plan-listing', element: PurchaseOptionsPage },
+  { path: '/profile', element: JobseekerProfilePage },                
+  { path: '/purchase-plan-listing', element: PurchaseOptionsPage },    
+  { path: '/cart', element: CartPage },
 ];

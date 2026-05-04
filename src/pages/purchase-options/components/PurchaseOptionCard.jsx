@@ -2,7 +2,8 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star, ShoppingCart, Briefcase, Building, Building2, Zap } from 'lucide-react';
+import { Check, ShoppingCart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function PurchaseOptionCard({ 
   type, 
@@ -16,92 +17,82 @@ export function PurchaseOptionCard({
   isPopular = false,
   className 
 }) {
+  const navigate = useNavigate();
   const isSubscription = type?.toLowerCase() === 'subscription';
-
-  const getPlanIcon = () => {
-    const size = "h-5 w-5";
-    if (title.toLowerCase().includes('small')) return <Briefcase className={cn(size, "text-blue-500")} />;
-    if (title.toLowerCase().includes('midsize')) return <Building className={cn(size, "text-purple-500")} />;
-    if (title.toLowerCase().includes('large')) return <Building2 className={cn(size, "text-amber-500")} />;
-    return <Zap className={cn(size, "text-emerald-500")} />;
-  };
 
   return (
     <Card 
       className={cn(
-        'group relative flex flex-col h-full transition-all duration-300 border-border/60 bg-card hover:border-primary/40 hover:shadow-lg',
-        isPopular && 'border-primary/50 shadow-md ring-1 ring-primary/10',
+        'group relative xl:w-74 border-primary/50 flex flex-col h-full transition-all duration-300 bg-card hover:border-primary/40 hover:shadow-lg',
+        isPopular && 'border-primary shadow-md ring-2 ring-primary/10',
         className
       )}
     >
-      {/* Header with Type and Icon */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-2">
-        <div className="flex items-center gap-2.5">
-          <div className={cn(
-            "p-2 rounded-lg bg-muted/50 border border-border/40",
-            isPopular && "bg-primary/5 border-primary/10"
-          )}>
-            {getPlanIcon()}
-          </div>
-          <div className="flex flex-col">
-            <h3 className="text-lg font-bold tracking-tight group-hover:text-primary transition-colors">
-              {title}
-            </h3>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
-              {type} {isSubscription && `• ${duration || 'mo'}`}
-            </span>
-          </div>
+      {/* Corner Ribbon Popular UI */}
+      {isPopular && (
+        <div className="absolute -top-2 -left-2 bg-red-700 text-white text-[10px] md:text-xs font-bold px-2 md:px-3 py-1 rounded-tr-md rounded-bl-md shadow-md z-10">
+          Most Popular
         </div>
-        {isPopular && (
-          <Badge variant="primary" className="h-5 px-2 text-[9px] uppercase font-bold tracking-tighter">
-            Popular
-          </Badge>
-        )}
+      )}
+
+      {/* Centered Header Section */}
+      <div className="flex flex-col items-center justify-center px-5 pt-6 pb-1 text-center">
+        <span className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400 mb-2">
+          {type} 
+        </span>
+        <h3 className="text-2xl -mt-1 font-semibold tracking-tight text-foreground  transition-colors">
+          {title}
+        </h3>
       </div>
 
-      <CardHeader className="px-5 py-3 space-y-0.5">
-        <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-black tracking-tighter">
+      <CardHeader className="px-5 py-2 space-y-0.5 text-center">
+        <div className="flex items-baseline justify-center gap-1.5">
+          <span className="xl:text-5xl text-4xl font-semibold tracking-tighter text-foreground">
             {amount.split(' ')[1]}
           </span>
           <span className="text-xs font-bold text-muted-foreground uppercase">{amount.split(' ')[0]}</span>
         </div>
-        <p className="text-xs text-muted-foreground font-semibold italic">{line1}</p>
+        <p className="text-xs text-muted-foreground font-bold italic mt-2">{line1}</p>
       </CardHeader>
       
-      <CardContent className="px-5 py-4 flex-grow flex flex-col gap-5">
-        {description && (
-          <p className="text-xs font-medium text-foreground/70 leading-relaxed py-2 px-3 bg-muted/30 rounded-md border border-border/30">
-            {description}
-          </p>
-        )}
+      <CardContent className="px-6 py-2 flex-grow flex flex-col gap-6">
+          {/* {description && (
+            <p className="text-[13px] font-medium text-foreground/80 leading-relaxed py-3 px-4 bg-muted/40 rounded-xl border border-border/20 text-center">
+              {description}
+            </p>
+          )} */}
 
-        <div className="space-y-2.5">
+        <div className="space-y-1 pt-2">
           {features.map((feature, index) => (
-            <div key={index} className="flex items-start gap-2.5 text-[13px] text-muted-foreground group/item">
-              <div className="mt-0.5 flex-shrink-0">
-                <Check className="h-3.5 w-3.5 text-primary" strokeWidth={3} />
+            <div key={index} className="flex items-start gap-3 text-[14px] text-muted-foreground group/item">
+              <div className="mt-1 flex-shrink-0">
+                <div className="size-4 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Check className="h-2.5 w-2.5 text-primary" strokeWidth={4} />
+                </div>
               </div>
-              <span className="leading-tight font-medium group-hover/item:text-foreground transition-colors">{feature}</span>
+              <span className="leading-snug font-medium group-hover/item:text-foreground transition-colors">{feature}</span>
             </div>
           ))}
         </div>
       </CardContent>
 
-      <CardFooter className="px-5 pb-6 pt-2">
+      <CardFooter className="px-6 pb-4 pt-2">
         <Button 
+          onClick={() => navigate('/cart')}
           className={cn(
-            "w-full h-11 font-bold text-xs uppercase tracking-wider transition-all duration-200",
-            isPopular ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90 shadow-sm"
+            "w-full h-10 font-semibold text-base  transition-all duration-300 rounded-xl",
+            isPopular 
+              ? "bg-primary text-white hover:bg-primary/90 shadow-xl shadow-primary/20" 
+              : "bg-slate-900 text-white hover:bg-slate-800 shadow-lg"
           )}
         >
           <span>{buttonText}</span>
-          <ShoppingCart className="ml-2 h-3.5 w-3.5" strokeWidth={2.5} />
+          <ShoppingCart className="ml-2 h-4 w-4" strokeWidth={2.5} />
         </Button>
       </CardFooter>
 
       {/* Decorative hover line at bottom */}
-      <div className="absolute bottom-0 left-0 h-1 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-500 w-full rounded-b-xl" />
+      <div className="absolute bottom-0 left-0 h-1.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-500 w-full rounded-b-xl" />
     </Card>
   );
 }
