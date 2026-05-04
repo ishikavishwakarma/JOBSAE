@@ -105,7 +105,7 @@ export function UserDropdownMenu({ trigger }) {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link
-            to="/account/home/jobseeker-profile"
+            to="/profile"
             className="flex items-center gap-2"
           >
             <UserCircle />
@@ -114,7 +114,7 @@ export function UserDropdownMenu({ trigger }) {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link
-            to="/account/home/company-profile"
+            to="/company-profile"
             className="flex items-center gap-2"
           >
             <UserCircle />
@@ -123,7 +123,7 @@ export function UserDropdownMenu({ trigger }) {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link
-            to="/account/home/user-settings"
+            to="/settings/account-settings"
             className="flex items-center gap-2"
           >
             <Settings />
@@ -149,7 +149,7 @@ export function UserDropdownMenu({ trigger }) {
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link
-                to="/account/home/jobseeker-profile"
+                to="/profile"
                 className="flex items-center gap-2"
               >
                 <FileText />
@@ -158,7 +158,7 @@ export function UserDropdownMenu({ trigger }) {
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link
-                to="/account/home/company-profile"
+                to="/company-profile"
                 className="flex items-center gap-2"
               >
                 <FileText />

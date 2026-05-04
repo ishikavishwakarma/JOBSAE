@@ -33,7 +33,7 @@ export function AccountMembersStarterContent() {
           </Fragment>
         }
         engage={{
-          path: '/account/home/jobseeker-profile',
+          path: '/profile',
           label: 'Add New Member',
           btnColor: 'btn-primary',
         }}

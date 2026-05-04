@@ -24,14 +24,6 @@ import {
 const stickySidebarClasses = {
   'demo1-layout': 'top-[calc(var(--header-height)+1rem)]',
   'demo2-layout': 'top-[calc(var(--header-height)+1rem)]',
-  'demo3-layout': 'top-[calc(var(--header-height)+var(--navbar-height)+1rem)]',
-  'demo4-layout': 'top-[3rem]',
-  'demo5-layout': 'top-[calc(var(--header-height)+1.5rem)]',
-  'demo6-layout': 'top-[3rem]',
-  'demo7-layout': 'top-[calc(var(--header-height)+1rem)]',
-  'demo8-layout': 'top-[3rem]',
-  'demo9-layout': 'top-[calc(var(--header-height)+1rem)]',
-  'demo10-layout': 'top-[1.5rem]',
 };
 
 export function AccountSettingsSidebarContent() {

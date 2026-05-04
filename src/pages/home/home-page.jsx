@@ -18,9 +18,10 @@ import {
 } from 'lucide-react';
 import { Container } from '@/components/common/container';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState({
     keyword: '',
     cityState: '',
@@ -30,6 +31,47 @@ const HomePage = () => {
   useEffect(() => {
     document.title = 'JOBSAE | Find Your Next Job';
   }, []);
+
+  const handleSearch = () => {
+    const { keyword, cityState, country } = search;
+    let url = '/jobsnearme';
+
+    // Construct URL based on provided fields to match the specific route requirements
+    if (keyword && country) {
+      if (cityState) {
+        const parts = cityState.split(',').map(p => p.trim());
+        const state = parts[1] || parts[0];
+        const city = parts[1] ? parts[0] : '';
+        
+        if (city) {
+          url = `/jobsnearme/keyword/${encodeURIComponent(keyword)}/location/${encodeURIComponent(country)}/${encodeURIComponent(state)}/${encodeURIComponent(city)}`;
+        } else {
+          url = `/jobsnearme/keyword/${encodeURIComponent(keyword)}/location/${encodeURIComponent(country)}/${encodeURIComponent(state)}`;
+        }
+      } else {
+        url = `/jobsnearme/keyword/${encodeURIComponent(keyword)}/location/${encodeURIComponent(country)}`;
+      }
+    } else if (keyword) {
+      url = `/jobsnearme/keyword/${encodeURIComponent(keyword)}`;
+    } else if (country) {
+      if (cityState) {
+        const parts = cityState.split(',').map(p => p.trim());
+        const state = parts[1] || parts[0];
+        const city = parts[1] ? parts[0] : '';
+        if (city) {
+          url = `/jobsnearme/location/${encodeURIComponent(country)}/${encodeURIComponent(state)}/${encodeURIComponent(city)}`;
+        } else if (state) {
+          url = `/jobsnearme/location/${encodeURIComponent(country)}/${encodeURIComponent(state)}`;
+        } else {
+          url = `/jobsnearme/location/${encodeURIComponent(country)}`;
+        }
+      } else {
+        url = `/jobsnearme/location/${encodeURIComponent(country)}`;
+      }
+    }
+
+    navigate(url);
+  };
 
   const categories = [
     { name: 'Technology & IT', jobs: '1,420 jobs', icon: <Monitor className="w-6 h-6" /> },
@@ -110,7 +152,10 @@ const HomePage = () => {
               </div>
 
               <div className="w-full md:w-auto p-1">
-                <Button className="w-full md:w-auto h-14 px-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95">
+                <Button 
+                  className="w-full md:w-auto h-14 px-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95"
+                  onClick={handleSearch}
+                >
                   Find Jobs
                 </Button>
               </div>
@@ -123,13 +168,13 @@ const HomePage = () => {
               </span>
               <div className="inline-flex flex-wrap justify-center gap-x-6 gap-y-3">
                 {popularKeywords.map((keyword, index) => (
-                  <a 
+                  <button 
                     key={index} 
-                    href="#" 
+                    onClick={() => setSearch({...search, keyword})}
                     className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border-b-2 border-transparent hover:border-blue-600 dark:hover:border-blue-400 pb-0.5"
                   >
                     {keyword}
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
@@ -137,7 +182,7 @@ const HomePage = () => {
         </Container>
       </section>
 
-      {/* 2. Categories Section */}
+      {/* Categories Section */}
       <section className="py-20 bg-slate-50 dark:bg-slate-950">
         <Container>
           <div className="flex justify-between items-end mb-12 gap-6">
@@ -145,14 +190,21 @@ const HomePage = () => {
               <h2 className="text-3xl font-semibold text-slate-900 dark:text-white mb-3">Browse Jobs by Category</h2>
               <p className="text-lg text-slate-600 dark:text-slate-400 font-normal">Explore roles tailored to your unique expertise and career goals.</p>
             </div>
-            <Link to="/categories" className="hidden sm:flex items-center text-blue-600 dark:text-blue-400 font-bold text-lg hover:text-blue-700 dark:hover:text-blue-300">
+            <Link to="/jobsnearme/industry" className="hidden sm:flex items-center text-blue-600 dark:text-blue-400 font-bold text-lg hover:text-blue-700 dark:hover:text-blue-300">
                Browse all <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {categories.map((cat, idx) => (
-              <a href="#" key={idx} className="flex items-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:shadow-xl dark:hover:shadow-blue-900/10 transition-all group hover:-translate-y-1">
+              <button 
+                key={idx} 
+                onClick={() => {
+                  setSearch({...search, keyword: cat.name});
+                  // Optionally navigate immediately or let user click Find Jobs
+                }}
+                className="flex items-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:shadow-xl dark:hover:shadow-blue-900/10 transition-all group hover:-translate-y-1 text-left"
+              >
                 <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mr-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   {cat.icon}
                 </div>
@@ -160,13 +212,13 @@ const HomePage = () => {
                   <h3 className="text-xl font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
                   <p className="text-base text-slate-500 dark:text-slate-400 mt-1">{cat.jobs}</p>
                 </div>
-              </a>
+              </button>
             ))}
           </div>
         </Container>
       </section>
 
-      {/* 3. Features Section */}
+      {/* Features Section */}
       <section className="py-24 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800">
         <Container>
           <div className="text-center mb-20">
@@ -287,7 +339,7 @@ const HomePage = () => {
         </Container>
       </section>
 
-      {/* 4. Locations Section */}
+      {/* Locations Section */}
       <section className="py-20 bg-slate-50 dark:bg-slate-950">
         <Container>
           <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
@@ -295,14 +347,20 @@ const HomePage = () => {
               <h2 className="text-3xl font-semibold text-slate-900 dark:text-white mb-3">Top Hiring Hubs</h2>
               <p className="text-lg text-slate-600 dark:text-slate-400 font-normal">Join thriving professional communities in leading cities.</p>
             </div>
-            <Link to="/locations" className="flex items-center text-blue-600 dark:text-blue-400 font-bold text-lg hover:text-blue-700 dark:hover:text-blue-300 transition-all">
+            <Link to="/jobsnearme/location" className="flex items-center text-blue-600 dark:text-blue-400 font-bold text-lg hover:text-blue-700 dark:hover:text-blue-300 transition-all">
               View all locations <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {locations.map((loc, idx) => (
-              <a href="#" key={idx} className="group block rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:shadow-2xl dark:hover:shadow-blue-900/10 transition-all hover:-translate-y-2">
+              <button 
+                key={idx} 
+                onClick={() => {
+                  setSearch({...search, cityState: `${loc.city}, ${loc.state}`, country: loc.country});
+                }}
+                className="group block rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:shadow-2xl dark:hover:shadow-blue-900/10 transition-all hover:-translate-y-2 text-left w-full"
+              >
                 <div className="aspect-[4/3] relative overflow-hidden bg-slate-200 dark:bg-slate-800">
                   <img 
                     src={loc.image} 
@@ -320,11 +378,11 @@ const HomePage = () => {
                 </div>
                 <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
                   <span className="text-base font-semibold text-slate-700 dark:text-slate-300 font-normal">{loc.jobs} jobs available</span>
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
                     <ChevronRight className="w-5 h-5" />
                   </div>
                 </div>
-              </a>
+              </button>
             ))}
           </div>
         </Container>

@@ -3,10 +3,6 @@ import { RequireAuth } from '@/auth/require-auth';
 import { ErrorRouting } from '@/errors/error-routing';
 import { CustomLayout } from '@/layouts/custom/layout';
 import { Demo1Layout } from '@/layouts/demo1/layout';
-import { Demo2Layout } from '@/layouts/demo2/layout';
-import { Demo3Layout } from '@/layouts/demo3/layout';
-import { Demo4Layout } from '@/layouts/demo4/layout';
-import { Demo5Layout } from '@/layouts/demo5/layout';
 import {
   AccountActivityPage,
   AccountAllowedIPAddressesPage,
@@ -48,8 +44,7 @@ import {
   AuthAccountDeactivatedPage,
   AuthWelcomeMessagePage,
 } from '@/pages/auth';
-import { DefaultPage, Demo1DarkSidebarPage } from '@/pages/dashboards';
-import { HomePage } from '@/pages/home';
+import { Demo1DarkSidebarPage } from '@/pages/dashboards';
 import {
   NetworkAppRosterPage,
   NetworkAuthorPage,
@@ -100,40 +95,20 @@ import {
   WishlistPage,
 } from '@/pages/store-client';
 import { Navigate, Route, Routes } from 'react-router';
-import { JobseekerProfilePage } from '../pages/account/home';
-import { JobDetailsStandalonePage, JobSearchPage } from '../pages/jobs';
-import { JobsNearMePage } from '../pages/jobs-near-me/JobsNearMePage';
-import { AllCompaniesPage } from '../pages/companies/AllCompaniesPage';
-import { AllCategoriesPage } from '../pages/categories/AllCategoriesPage';
-import { AllLocationsPage } from '../pages/locations/AllLocationsPage';
+import { CUSTOM_LAYOUT_ROUTES } from '@/config/routes.config';
 
 export function AppRoutingSetup() {
   return (
     <Routes>
       <Route element={<RequireAuth />}>
         <Route element={<CustomLayout />}>
-          <Route path="/" element={<HomePage  />} />
-          <Route path="/jobs-near-me" element={<JobsNearMePage />} />
-          <Route path="/companies" element={<AllCompaniesPage />} />
-          <Route path="/categories" element={<AllCategoriesPage />} />
-          <Route path="/locations" element={<AllLocationsPage />} />
-          <Route path="/jobs/search" element={<JobSearchPage />} />
-          <Route path="/jobs/details/:id" element={<JobDetailsStandalonePage />} />
-          <Route
-            path="/account/home/company-profile"
-            element={<AccountUserProfilePage />}
-          />
-          <Route
-            path="/account/home/user-settings"
-            element={<AccountSettingsPage />}
-          />
-          <Route
-            path="/account/home/jobseeker-profile"
-            element={<JobseekerProfilePage />}
-          />
+          {/* Optimized routing from constants */}
+          {CUSTOM_LAYOUT_ROUTES.map((route, index) => (
+            <Route key={index} path={route.path} element={<route.element />} />
+          ))}
         </Route>
 
-        <Route element={<Demo3Layout />}>
+        <Route element={<Demo1Layout />}>
           <Route path="/dark-sidebar" element={<Demo1DarkSidebarPage />} />
           <Route
             path="/public-profile/profiles/default/"
@@ -224,7 +199,7 @@ export function AppRoutingSetup() {
           />
 
           <Route
-            path="/account/home/company-profile"
+            path="/company-profile"
             element={<AccountCompanyProfilePage />}
           />
 

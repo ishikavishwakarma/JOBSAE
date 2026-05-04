@@ -26,6 +26,7 @@ import {
   Grid,
   Heart,
   HelpCircle,
+  Home,
   Kanban,
   Key,
   Layout,
@@ -117,6 +118,21 @@ export const MENU_SIDEBAR = [
     ],
   },
   {
+    title: 'Home',
+    icon: Home,
+    children: [
+      {
+        title: 'Purchase',
+        children: [
+          { title: 'Purchase List', path: '/public-profile/profiles/default' },
+          { title: 'Purchase Option', path: '/purchase-plan-listing' },
+          
+        ],
+      },
+    
+    ],
+  },
+  {
     title: 'My Account',
     icon: Settings,
     children: [
@@ -125,8 +141,8 @@ export const MENU_SIDEBAR = [
         children: [
           { title: 'Get Started', path: '/account/home/get-started' },
         // { title: 'User Profile', path: '/account/home/user-profile' },
-          { title: 'Jobseeker Profile', path: '/account/home/jobseeker-profile' },
-          { title: 'Company Profile', path: '/account/home/company-profile' },
+          { title: 'Jobseeker Profile', path: '/profile' },
+          { title: 'Company Profile', path: '/company-profile' },
           {
             title: 'Settings - With Sidebar',
             path: '/account/home/settings-sidebar',
@@ -528,8 +544,8 @@ export const MENU_SIDEBAR_COMPACT = [
         children: [
           { title: 'Get Started', path: '/account/home/get-started' },
           // { title: 'User Profile', path: '/account/home/user-profile' },
-          { title: 'Jobseeker Profile', path: '/account/home/jobseeker-profile' },
-          { title: 'Company Profile', path: '/account/home/company-profile' },
+          { title: 'Jobseeker Profile', path: '/profile' },
+          { title: 'Company Profile', path: '/company-profile' },
           {
             title: 'Settings - With Sidebar',
             path: '/account/home/settings-sidebar',
@@ -932,10 +948,10 @@ export const MENU_MEGA = [
             title: 'Account Home',
             children: [
               { title: 'Get Started', path: '/account/home/get-started' },
-              { title: 'User Profile', path: '/account/home/jobseeker-profile' },
+              { title: 'User Profile', path: '/profile' },
               {
                 title: 'Company Profile',
-                path: '/account/home/company-profile',
+                path: '/company-profile',
               },
               { title: 'With Sidebar', path: '/account/home/settings-sidebar' },
               {
@@ -1335,10 +1351,10 @@ export const MENU_MEGA_MOBILE = [
             title: 'Account Home',
             children: [
               { title: 'Get Started', path: '/account/home/get-started' },
-              { title: 'User Profile', path: '/account/home/jobseeker-profile' },
+              { title: 'User Profile', path: '/profile' },
               {
                 title: 'Company Profile',
-                path: '/account/home/company-profile',
+                path: '/company-profile',
               },
               { title: 'With Sidebar', path: '/account/home/settings-sidebar' },
               {

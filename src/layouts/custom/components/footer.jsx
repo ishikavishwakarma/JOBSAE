@@ -22,11 +22,11 @@ export function Footer() {
           <div>
             <h4 className="font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-wider text-sm">Candidates</h4>
             <ul className="space-y-4 text-base text-slate-600 dark:text-slate-400 font-medium">
-              <li><Link to="/jobs-near-me" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Jobs Near Me</Link></li>
+              <li><Link to="/jobsnearme" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Jobs Near Me</Link></li>
               <li><Link to="/jobs/search" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Find Jobs</Link></li>
-              <li><Link to="/companies" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Top Companies</Link></li>
-              <li><Link to="/categories" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Browse Categories</Link></li>
-              <li><Link to="/locations" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Job Locations</Link></li>
+              <li><Link to="/jobsnearme/company" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Top Companies</Link></li>
+              <li><Link to="/jobsnearme/keyword" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Browse Categories</Link></li>
+              <li><Link to="/jobsnearme/location" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Job Locations</Link></li>
             </ul>
           </div>
           

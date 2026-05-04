@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container } from '@/components/common/container';
 import { JobFilters } from './components/JobFilters';
 import { JobCard } from './components/JobCard';
 import { JobDetails } from './components/JobDetails';
 import { toAbsoluteUrl } from '@/lib/helpers';
-import { Share2 } from 'lucide-react';
+import { Share2, Search as SearchIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useParams, useSearchParams } from 'react-router-dom';
 
 const JOBS_DATA = [
   {
@@ -42,10 +43,39 @@ const JOBS_DATA = [
 
 export default function JobSearchPage() {
   const [selectedJob, setSelectedJob] = useState(JOBS_DATA[0]);
+  const params = useParams();
+  const [searchParams] = useSearchParams();
+  
+  const { keyword, company, industry, country, state, city, pageNo } = params;
+
+  useEffect(() => {
+    let title = 'Job Search | JOBSAE';
+    if (keyword) title = `Jobs for ${keyword} | JOBSAE`;
+    else if (company) title = `Jobs at ${company} | JOBSAE`;
+    document.title = title;
+  }, [keyword, company]);
+
+  const getActiveSearchDisplay = () => {
+    const parts = [];
+    if (keyword) parts.push(`"${keyword}"`);
+    if (company) parts.push(`at ${company}`);
+    if (industry) parts.push(`in ${industry}`);
+    
+    const locationParts = [];
+    if (city) locationParts.push(city);
+    if (state) locationParts.push(state);
+    if (country) locationParts.push(country);
+    
+    if (locationParts.length > 0) {
+      parts.push(`in ${locationParts.join(', ')}`);
+    }
+
+    return parts.join(' ') || 'All Jobs';
+  };
 
   return (
     <div className="flex flex-col max-w-screen min-h-screen bg-muted/20">
-      <JobFilters />
+      <JobFilters defaultKeyword={keyword} />
       
       <main className="grow">
         <Container className="py-6 h-[calc(100vh-140px)]">
@@ -54,7 +84,10 @@ export default function JobSearchPage() {
             <div className="w-full md:w-[420px] border-r border-border flex flex-col shrink-0 bg-background">
               <div className="p-5 border-b border-border bg-card/30 flex justify-between items-center">
                 <div>
-                  <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground/80">Job Results</h2>
+                  <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
+                    <SearchIcon className="size-3" />
+                    {getActiveSearchDisplay()}
+                  </h2>
                   <p className="text-[10px] font-bold text-primary mt-0.5">345 new jobs found</p>
                 </div>
                 <Button variant="ghost" size="icon" className="size-8 rounded-lg"><Share2 className="size-4" /></Button>

@@ -15,12 +15,35 @@ import {
 } from 'lucide-react';
 import { Container } from '@/components/common/container';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 const JobsNearMePage = () => {
+  const params = useParams();
+  const { keyword, company, industry, country, state, city, page, pageNo } = params;
+
   useEffect(() => {
     document.title = 'Jobs Near Me | JOBSAE';
   }, []);
+
+  const getSearchTitle = () => {
+    let titleParts = [];
+    if (keyword) titleParts.push(`"${keyword}"`);
+    if (company) titleParts.push(`at ${company}`);
+    if (industry) titleParts.push(`in ${industry}`);
+    
+    let locationParts = [];
+    if (city) locationParts.push(city);
+    if (state) locationParts.push(state);
+    if (country) locationParts.push(country);
+    
+    let fullTitle = titleParts.join(' ');
+    let fullLocation = locationParts.join(', ');
+    
+    if (fullTitle && fullLocation) return `${fullTitle} in ${fullLocation}`;
+    if (fullTitle) return fullTitle;
+    if (fullLocation) return `Jobs in ${fullLocation}`;
+    return 'Local Jobs in your Neighborhood';
+  };
 
   const companies = [
     { name: 'TechFlow', logo: 'TF', color: 'bg-blue-600', industry: 'Software', openJobs: '12' },
@@ -66,12 +89,13 @@ const JobsNearMePage = () => {
           <div className="max-w-3xl relative z-10">
             <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold mb-4">
                <MapPin className="w-5 h-5" />
-               <span>Based on your location</span>
+               <span>{country ? `Browsing in ${country}` : 'Based on your location'}</span>
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
-              Local Jobs in your <span className="text-blue-600 dark:text-blue-400">Neighborhood</span>
+              {getSearchTitle().split(' Neighborhood')[0]} <span className="text-blue-600 dark:text-blue-400">Neighborhood</span>
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-400 mb-8 max-w-2xl">
+              {pageNo || page ? `Showing results for page ${pageNo || page}. ` : ''}
               We've found thousands of opportunities within 25 miles of you. Start your next chapter close to home.
             </p>
             <div className="flex flex-wrap gap-4">
@@ -93,7 +117,7 @@ const JobsNearMePage = () => {
               </h2>
               <p className="text-slate-600 dark:text-slate-400 mt-2 text-lg">Work with industry leaders in your area.</p>
             </div>
-            <Link to="/companies">
+            <Link to="/jobsnearme/company">
               <Button variant="outline" className="hidden sm:flex border-slate-200 dark:border-slate-800 font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
                 Show All Companies <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -130,7 +154,7 @@ const JobsNearMePage = () => {
               <LayoutGrid className="w-6 h-6 text-blue-600" />
               Popular Local Categories
             </h2>
-            <Link to="/categories">
+            <Link to="/jobsnearme/keyword">
               <Button variant="outline" className="hidden sm:flex border-slate-200 dark:border-slate-800 font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
                 Show All Categories <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -158,7 +182,7 @@ const JobsNearMePage = () => {
               <Globe className="w-6 h-6 text-blue-600" />
               Explore Nearby Areas
             </h2>
-            <Link to="/locations">
+            <Link to="/jobsnearme/location">
               <Button variant="outline" className="hidden sm:flex border-slate-200 dark:border-slate-800 font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
                 Show All Locations <ArrowRight className="w-4 h-4 ml-2" />
               </Button>

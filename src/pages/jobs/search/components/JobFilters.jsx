@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ChevronDown,
   Filter,
@@ -20,8 +20,13 @@ import {
 } from '@/components/ui/select';
 import { Container } from '@/components/common/container';
 
-export function JobFilters() {
+export function JobFilters({ defaultKeyword = '' }) {
   const [activeFilters, setActiveFilters] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(defaultKeyword);
+
+  useEffect(() => {
+    setSearchTerm(defaultKeyword);
+  }, [defaultKeyword]);
 
   const toggleFilter = (filter) => {
     setActiveFilters((prev) =>
@@ -45,13 +50,15 @@ export function JobFilters() {
   return (
     <div className="bg-background border-b border-border sticky top-(--header-height) z-40 bg-background/95 backdrop-blur-sm w-full overflow-x-hidden">
       <Container className="mx-auto py-2 md:py-3 px-4 md:px-6 overflow-hidden">
-        {/* Mobile Search Row */}
-        <div className="lg:hidden mb-3 relative group w-full">
+        {/* Search Row - Integrated with Desktop too if needed, but let's stick to user intent */}
+        <div className="mb-3 relative group w-full lg:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <input
             type="text"
             placeholder="Search jobs, companies..."
             className="w-full bg-muted border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary focus:bg-background transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
