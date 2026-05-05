@@ -14,7 +14,6 @@ import {
   ApiError,
   QueryMeta,
 } from "../redux/apis/types/api.types";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LocationData {
   Latitude: number | null;
@@ -485,6 +484,7 @@ async function buildFileUploadBody(
 function handleSpecialResponses(decrypted: DecryptedResponse): void {
   // Dynamic key from app profile
   if (decrypted?.Call === "Application_Profile_Get") {
+    console.log("Application_Profile_Get", decrypted);
     const profile = decrypted?.Return?.Application_Profile ?? [];
     const dk = profile.find((i) => i.Key === "Dk")?.Value;
     if (dk) {
