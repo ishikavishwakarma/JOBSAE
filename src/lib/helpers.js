@@ -86,6 +86,10 @@ export function timeAgo(date) {
   return `${Math.floor(diff / 31536000)} year${Math.floor(diff / 31536000) > 1 ? 's' : ''} ago`;
 }
 
+export const findByKey = (array, key, value) => {
+  return array?.find((item) => item[key] === value);
+};
+
 export function formatDate(input) {
   const date = new Date(input);
   return date.toLocaleDateString('en-US', {

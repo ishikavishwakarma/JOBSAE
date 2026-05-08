@@ -93,32 +93,14 @@ const ServerVariablesWatcher = () => {
     const { data, isLoading, error, refetch } = useGetServerVariablesQuery();
 
     useEffect(() => {
-        const fetchServerVars = async () => {
-            try {
-                // Increment fetch count when starting
-                dispatch(INCREMENT_SERVER_FETCH_COUNT());
-                
-                // If you need to manually refetch on location change
-                if (!data) {
-                    const result = await refetch();
-                    if (result.data) {
-                        dispatch(SET_SERVER_VARIABLES(result.data));
-                        saveServerVariablesToCookie(result.data);
-                        console.log("✅ Server variables updated:", result.data);
-                    }
-                } else if (data) {
-                    // If data is already available from initial load
-                    dispatch(SET_SERVER_VARIABLES(data));
-                    saveServerVariablesToCookie(data);
-                    console.log("✅ Server variables loaded:", data);
-                }
-            } catch (err) {
-                console.error("❌ Failed to fetch server variables:", err);
-            }
-        };
-
-        fetchServerVars();
-    }, [location.pathname, dispatch, refetch, data]); 
+        if (data) {
+            // Dispatch to Redux store
+            dispatch(SET_SERVER_VARIABLES(data));
+            // Save to cookie with encryption
+            saveServerVariablesToCookie(data);
+            // console.log("✅ Server variables loaded and synced:", data);
+        }
+    }, [data, dispatch]); 
 
     // // Logging for debugging
     // if (isLoading) {

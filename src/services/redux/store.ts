@@ -4,6 +4,9 @@ import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import routeReducer from "./slice/routeSlice";
 import uploadFilesReducer from "./slice/uploadFilesSlice";
+import profileReducer from "./slice/profileSlice";
+import authReducer from "./slice/authSlice";
+import jobReducer from "./slice/jobSlice";
 import { setStore } from "./storeAccessor"; // Import setStore
 import { api } from "./apis";
 
@@ -11,6 +14,9 @@ export const store = configureStore({
     reducer: {
         route: routeReducer,
         uploadFiles: uploadFilesReducer,
+        profile: profileReducer,
+        auth: authReducer,
+        job: jobReducer,
         [api.reducerPath]: api.reducer,
     },
     middleware: (getDefaultMiddleware) =>

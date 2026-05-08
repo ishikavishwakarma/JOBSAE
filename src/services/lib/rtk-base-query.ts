@@ -14,6 +14,7 @@ import {
   ApiError,
   QueryMeta,
 } from "../redux/apis/types/api.types";
+import { appProfileReady, markAppProfileReady } from "../../utils/Security/appInit";
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LocationData {
   Latitude: number | null;
@@ -129,49 +130,44 @@ function logApiCall(params: {
 }) {
   const { method, url, fullUrl, headers, meta, rawBody, encryptedPayload, startTime } = params;
 
-  console.groupCollapsed(
-    `%c⬆ ${method} %c${url}`,
-    'color:#fff; background:#1D9E75; padding:2px 6px; border-radius:3px; font-weight:600;',
-    'color:#378ADD; font-weight:600; font-size:12px;'
-  );
+  // console.info(
+  //   `%c⬆ ${method} %c${url}`,
+  //   'color:#fff; background:#1D9E75; padding:2px 6px; border-radius:3px; font-weight:600;',
+  //   'color:#378ADD; font-weight:600; font-size:12px;'
+  // );
 
   // ── General ──────────────────────────────────────────────────────────────
-  console.log('%cGeneral', 'color:#888; font-size:11px; text-transform:uppercase;');
-  console.table({
-    'Full URL': fullUrl,
-    'Method': method,
-    'Timestamp': new Date().toISOString(),
-  });
+ 
 
   // ── Request headers ───────────────────────────────────────────────────────
-  console.log('%cRequest Headers', 'color:#888; font-size:11px; text-transform:uppercase;');
-  console.table(headers);
+  // console.log('%cRequest Headers', 'color:#888; font-size:11px; text-transform:uppercase;');
+  // console.table(headers);
 
   // ── Meta / options ────────────────────────────────────────────────────────
-  console.log('%cMeta / Options', 'color:#888; font-size:11px; text-transform:uppercase;');
-  console.table({
-    includeUser: meta.includeUser ?? true,
-    encryptEnabled: meta.encryptEnabled ?? true,
-    isProfileCall: meta.isProfileCall ?? false,
-    shouldDecrypt: meta.decrypt ?? true,
-    isFileUpload: meta.isFileUpload ?? false,
-    noEncrypt: JSON.stringify(meta.noEncrypt ?? []),
-    extraPayload: meta.extraPayload ? JSON.stringify(meta.extraPayload) : 'null',
-  });
+  // console.log('%cMeta / Options', 'color:#888; font-size:11px; text-transform:uppercase;');
+  // console.table({
+  //   includeUser: meta.includeUser ?? true,
+  //   encryptEnabled: meta.encryptEnabled ?? true,
+  //   isProfileCall: meta.isProfileCall ?? false,
+  //   shouldDecrypt: meta.decrypt ?? true,
+  //   isFileUpload: meta.isFileUpload ?? false,
+  //   noEncrypt: JSON.stringify(meta.noEncrypt ?? []),
+  //   extraPayload: meta.extraPayload ? JSON.stringify(meta.extraPayload) : 'null',
+  // });
 
   // ── Raw body (what you actually sent before encryption) ───────────────────
-  console.log('%cRaw Body (before encryption)', 'color:#888; font-size:11px; text-transform:uppercase;');
-  console.log(rawBody);
+  // console.log('%cRaw Body (before encryption)', 'color:#888; font-size:11px; text-transform:uppercase;');
+  // console.log(rawBody);
 
-  // ── Encrypted payload fields ──────────────────────────────────────────────
-  console.log('%cEncrypted Payload Fields Sent', 'color:#888; font-size:11px; text-transform:uppercase;');
-  const payloadSummary: Record<string, string> = {};
-  for (const [key, val] of Object.entries(encryptedPayload)) {
-    payloadSummary[key] = typeof val === 'string'
-      ? `[encrypted — ${val.length} chars] ${val.slice(0, 40)}...`
-      : String(val);
-  }
-  console.table(payloadSummary);
+  // // ── Encrypted payload fields ──────────────────────────────────────────────
+  // console.log('%cEncrypted Payload Fields Sent', 'color:#888; font-size:11px; text-transform:uppercase;');
+  // const payloadSummary: Record<string, string> = {};
+  // for (const [key, val] of Object.entries(encryptedPayload)) {
+  //   payloadSummary[key] = typeof val === 'string'
+  //     ? `[encrypted — ${val.length} chars] ${val.slice(0, 40)}...`
+  //     : String(val);
+  // }
+  // console.table(payloadSummary);
 
   console.groupEnd();
 }
@@ -344,7 +340,7 @@ async function buildEncryptedPayload(
     noEncrypt = [],
   } = options;
 
-  console.log(noEncrypt)
+  // console.log(noEncrypt)
   const masterKey = getMasterKey(isProfileCall);
 
   // ── Build raw blocks ──────────────────────────────────────────────────────
@@ -360,7 +356,6 @@ async function buildEncryptedPayload(
     : null;
 
   // ── Log raw values ────────────────────────────────────────────────────────
-  log.group("🔧 Payload Builder");
   log.raw("📦 RAW Setup:", JSON.stringify(setupObj));
   log.raw("📨 RAW Request:", JSON.stringify(requestObj));
   if (userObj) log.raw("👤 RAW User:", JSON.stringify(userObj));
@@ -372,7 +367,7 @@ async function buildEncryptedPayload(
   // ── Plain-text path ───────────────────────────────────────────────────────
   if (!encryptEnabled) {
     log.warn("⚠️ Encryption disabled — sending plaintext");
-    log.groupEnd();
+    // log.groupEnd();
     return {
       setup: setupStr,
       request: requestStr,
@@ -424,7 +419,7 @@ async function buildEncryptedPayload(
     }
   }
 
-  log.success("✅ Payload built successfully");
+  // log.success("✅ Payload built successfully");
   log.groupEnd();
   return result;
 }
@@ -481,18 +476,28 @@ async function buildFileUploadBody(
 
 // ─── Side-effect handlers ─────────────────────────────────────────────────────
 
-function handleSpecialResponses(decrypted: DecryptedResponse): void {
-  // Dynamic key from app profile
-  if (decrypted?.Call === "Application_Profile_Get") {
-    console.log("Application_Profile_Get", decrypted);
+function handleSpecialResponses(decrypted: DecryptedResponse, requestBody: any, rawData?: any): void {
+  if (requestBody && requestBody.Call) {
+    log.raw( requestBody.Call);
+  }
+  // console.log("handleSpecialResponses", decrypted);
+  // Dynamic key and Unlock logic
+  if (decrypted?.Call === "Application_Profile_Get" || requestBody?.Call === "Application_Profile_Get") {
     const profile = decrypted?.Return?.Application_Profile ?? [];
     const dk = profile.find((i) => i.Key === "Dk")?.Value;
     if (dk) {
       setDynamicKey(dk);
       log.success("🗝️ Dynamic key updated");
     }
-  }
 
+    // 🔥 CACHE: Store the raw encrypted response for future sessions
+    if (rawData) {
+      sessionStorage.setItem("app_profile_encrypted", JSON.stringify(rawData));
+      log.info("💾 Profile encrypted data cached in sessionStorage");
+    }
+
+    markAppProfileReady();
+  }
   // Session ID rotation
   const newSession = decrypted?.Result?.Session_Id;
   if (newSession && Cookies.get("sessionId") !== String(newSession)) {
@@ -501,7 +506,6 @@ function handleSpecialResponses(decrypted: DecryptedResponse): void {
     });
     log.info("🍪 Session ID rotated");
   }
-
   // Location prompt
   if (decrypted?.Result?.Action_Items?.Ask_Location_Share === null) {
     window.dispatchEvent(
@@ -571,6 +575,10 @@ export const encryptedBaseQuery: BaseQueryFn<
 
   const extraHeaders: Record<string, string> = { ...argHeaders, ...metaHeaders };
 
+  // 🔥 BLOCKING LOGIC: Wait for profile data before any other API call
+  if (!isProfileCall) {
+    await appProfileReady;
+  }
   // ── GET — no encryption ───────────────────────────────────────────────────
   if (method.toUpperCase() === "GET") {
     log.info(`📡 GET ${url}`);
@@ -584,7 +592,7 @@ export const encryptedBaseQuery: BaseQueryFn<
   }
 
   // ── POST / encrypted ──────────────────────────────────────────────────────
-  log.group(`🚀 API Call — ${method} ${url}`);
+  // log.group(`🚀 API Call — ${method} ${url}`);
 
   try {
     const payloadOptions: BuildPayloadOptions = {
@@ -595,7 +603,7 @@ export const encryptedBaseQuery: BaseQueryFn<
 
     };
     const startTime = performance.now();
-    console.log("res", isFileUpload, isFileUpload && body instanceof FormData)
+    // console.log("res", isFileUpload, isFileUpload && body instanceof FormData)
     const requestBody =
       isFileUpload && body instanceof FormData
         ? await buildFileUploadBody(body, payloadOptions)
@@ -635,6 +643,10 @@ export const encryptedBaseQuery: BaseQueryFn<
           log.warn("⚠️ Could not decrypt error response — keeping raw");
         }
       }
+      if (isProfileCall) {
+        log.error("❌ Profile call failed - Unblocking app anyway to avoid freeze");
+        markAppProfileReady();
+      }
       log.groupEnd();
       return result;
     }
@@ -642,10 +654,15 @@ export const encryptedBaseQuery: BaseQueryFn<
     // ── Success — decrypt response ────────────────────────────────────────────
     if (result.data && shouldDecrypt) {
       try {
-        const decrypted = await decryptResponse(result.data) as DecryptedResponse;
-        result.data = decrypted;
-        log.decrypted("🔓 Decrypted API Response:", decrypted);
-        handleSpecialResponses(decrypted);
+        const decrypted = await decryptResponse(result.data) as any;
+        
+        // Normalize response: many APIs return [ { Return, Footer, Helmet, etc. } ]
+        // We unwrap the first element to provide a consistent object structure
+        const normalizedData = Array.isArray(decrypted) && decrypted.length > 0 ? decrypted[0] : decrypted;
+        
+        result.data = normalizedData;
+        log.decrypted("🔓 Decrypted API Response:", normalizedData);
+        handleSpecialResponses(normalizedData, body, result.data);
         if (decrypted?.Result?.Action_Items?.Logout === 1) {
           log.error("🚪 Session expired — logging out");
           handleLogout();
@@ -657,7 +674,7 @@ export const encryptedBaseQuery: BaseQueryFn<
       }
     }
 
-    log.success(`✅ ${url} completed`);
+    // log.success(`✅ ${url} completed`);
     log.groupEnd();
     return result;
   } catch (err) {

@@ -1,222 +1,121 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { 
-  Search, 
-  MapPin, 
-  Globe, 
-  Briefcase, 
-  Users, 
+  Check, 
+  Monitor, 
+  Share2, 
+  Play, 
   Smartphone, 
-  Target,
-  ArrowRight,
-  Check,
-  TrendingUp,
-  LayoutGrid,
-  Monitor,
-  Share2,
-  Play,
-  ChevronRight
+  Target 
 } from 'lucide-react';
 import { Container } from '@/components/common/container';
 import { Button } from '@/components/ui/button';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useHomeList } from '@/services/redux/apis/profileApi';
+import { setHomeData } from '@/services/redux/slice/profileSlice';
+import { findByKey } from '@/lib/helpers';
+
+// Components
+import CategorySection from './components/CategorySection';
+import LocationSection from './components/LocationSection';
+import CompanySection from './components/CompanySection';
+import SectionSkeleton from './components/SectionSkeleton';
+import JobSearchForm from './components/JobSearchForm';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [search, setSearch] = useState({
-    keyword: '',
-    cityState: '',
-    country: ''
-  });
+  const dispatch = useDispatch();
+  const fetchStarted = useRef(false);
+  const { getHomeList, isLoading: isHomeLoading } = useHomeList();
+
+  const sections = useSelector((state) => state.profile?.HomeData?.Return?.Home?.Sections) || [];
+  const companies = findByKey(sections, "Object", "Companies")?.Data?.List || [];
+  const locations = findByKey(sections, "Object", "Locations")?.Data?.List || [];
+  const industries = findByKey(sections, "Object", "Industries")?.Data?.List || [];
 
   useEffect(() => {
+    if (fetchStarted.current) return;
+    fetchStarted.current = true;
+
     document.title = 'JOBSAE | Find Your Next Job';
-  }, []);
 
-  const handleSearch = () => {
-    const { keyword, cityState, country } = search;
-    let url = '/jobsnearme';
-
-    // Construct URL based on provided fields to match the specific route requirements
-    if (keyword && country) {
-      if (cityState) {
-        const parts = cityState.split(',').map(p => p.trim());
-        const state = parts[1] || parts[0];
-        const city = parts[1] ? parts[0] : '';
-        
-        if (city) {
-          url = `/jobsnearme/keyword/${encodeURIComponent(keyword)}/location/${encodeURIComponent(country)}/${encodeURIComponent(state)}/${encodeURIComponent(city)}`;
-        } else {
-          url = `/jobsnearme/keyword/${encodeURIComponent(keyword)}/location/${encodeURIComponent(country)}/${encodeURIComponent(state)}`;
-        }
-      } else {
-        url = `/jobsnearme/keyword/${encodeURIComponent(keyword)}/location/${encodeURIComponent(country)}`;
+    const fetchHomeData = async () => {
+      try {
+        const res = await getHomeList({
+          company: 1,
+          industry: 1,
+          keyword: 1,
+          location: 1,
+        });
+        dispatch(setHomeData(res));
+      } catch (err) {
+        console.error("Home data fetch failed", err);
       }
-    } else if (keyword) {
-      url = `/jobsnearme/keyword/${encodeURIComponent(keyword)}`;
-    } else if (country) {
-      if (cityState) {
-        const parts = cityState.split(',').map(p => p.trim());
-        const state = parts[1] || parts[0];
-        const city = parts[1] ? parts[0] : '';
-        if (city) {
-          url = `/jobsnearme/location/${encodeURIComponent(country)}/${encodeURIComponent(state)}/${encodeURIComponent(city)}`;
-        } else if (state) {
-          url = `/jobsnearme/location/${encodeURIComponent(country)}/${encodeURIComponent(state)}`;
-        } else {
-          url = `/jobsnearme/location/${encodeURIComponent(country)}`;
-        }
-      } else {
-        url = `/jobsnearme/location/${encodeURIComponent(country)}`;
-      }
-    }
+    };
 
-    navigate(url);
-  };
-
-  const categories = [
-    { name: 'Technology & IT', jobs: '1,420 jobs', icon: <Monitor className="w-6 h-6" /> },
-    { name: 'Healthcare', jobs: '2,150 jobs', icon: <Users className="w-6 h-6" /> },
-    { name: 'Finance & Banking', jobs: '980 jobs', icon: <TrendingUp className="w-6 h-6" /> },
-    { name: 'Creative & Design', jobs: '640 jobs', icon: <LayoutGrid className="w-6 h-6" /> },
-    { name: 'Marketing & PR', jobs: '850 jobs', icon: <Target className="w-6 h-6" /> },
-    { name: 'Business & Management', jobs: '720 jobs', icon: <Briefcase className="w-6 h-6" /> },
-  ];
-
-  const locations = [
-    { city: 'New York', state: 'NY', country: 'USA', image: '/media/images/600x400/1.jpg', jobs: '12,400' },
-    { city: 'San Francisco', state: 'CA', country: 'USA', image: '/media/images/600x400/2.jpg', jobs: '8,180' },
-    { city: 'London', state: 'Greater London', country: 'UK', image: '/media/images/600x400/3.jpg', jobs: '15,310' },
-    { city: 'Berlin', state: 'Berlin', country: 'Germany', image: '/media/images/600x400/4.jpg', jobs: '5,150' },
-  ];
-
-  const popularKeywords = [
-    'Work from home', 'Software Engineer', 'Data Analyst', 'Marketing Manager', 
-    'Project Manager', 'Customer Service', 'Sales Representative', 
-    'Graphic Designer', 'Nurse', 'Part-time'
-  ];
+    fetchHomeData();
+  }, [dispatch, getHomeList]);
 
   return (
     <div className="flex flex-col min-h-screen font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       
       {/* 1. Hero Section */}
-      <section className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 pt-16 pb-20 lg:pt-24 lg:pb-32 relative overflow-hidden">
+      <section className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 pt-10 pb-20 lg:pt-18 lg:pb-32 relative overflow-hidden">
         {/* Subtle background decoration */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-blue-500/5 dark:bg-blue-500/10 blur-[140px] rounded-full pointer-events-none" />
         
         <Container>
           <div className="relative z-10 text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl lg:text-6xl font-semibold text-slate-900 dark:text-white leading-[1.1] mb-6 tracking-tight">
+            <h1 className="text-4xl lg:text-5xl font-semibold text-slate-900 dark:text-white leading-[1.1] mb-6 tracking-tight">
               Discover your next <span className="text-blue-600 dark:text-blue-400">career milestone</span>
             </h1>
-            <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-2xl mx-auto font-normal">
+            <p className="md:text-lg text-base text-slate-600 dark:text-slate-400 mb-12 max-w-2xl mx-auto font-normal">
               Access millions of opportunities and expert insights to find the role that truly fits your life and ambition.
             </p>
           </div>
 
-          {/* Search Bar */}
+          {/* Unified Search Component */}
           <div className="relative z-10 max-w-6xl mx-auto">
-            <div className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-3 flex flex-col md:flex-row items-center gap-0 group transition-all hover:border-blue-500 dark:hover:border-blue-400">
-              
-              <div className="flex-1 flex items-center px-6 w-full md:w-auto h-16 transition-colors group-focus-within:bg-slate-50/50 dark:group-focus-within:bg-slate-900/50 rounded-l-xl">
-                <Search className="w-6 h-6 text-slate-400 dark:text-slate-500 shrink-0" />
-                <input 
-                  placeholder="Job title, keywords, or company" 
-                  className="w-full bg-transparent border-none focus:ring-0 text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 outline-none font-medium"
-                  value={search.keyword}
-                  onChange={e => setSearch({...search, keyword: e.target.value})}
-                />
-              </div>
-              
-              <div className="hidden md:block w-px h-10 bg-slate-200 dark:bg-slate-700" />
-
-              <div className="flex-1 flex items-center px-6 w-full md:w-auto h-16 transition-colors">
-                <MapPin className="w-6 h-6 text-slate-400 dark:text-slate-500 shrink-0" />
-                <input 
-                  placeholder="City, state, or zip" 
-                  className="w-full bg-transparent border-none focus:ring-0 text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 outline-none font-medium"
-                  value={search.cityState}
-                  onChange={e => setSearch({...search, cityState: e.target.value})}
-                />
-              </div>
-
-              <div className="hidden md:block w-px h-10 bg-slate-200 dark:bg-slate-700" />
-
-              <div className="flex-1 flex items-center px-6 w-full md:w-auto h-16 transition-colors">
-                <Globe className="w-6 h-6 text-slate-400 dark:text-slate-500 shrink-0" />
-                <input 
-                  placeholder="Country" 
-                  className="w-full bg-transparent border-none focus:ring-0 text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 outline-none font-medium"
-                  value={search.country}
-                  onChange={e => setSearch({...search, country: e.target.value})}
-                />
-              </div>
-
-              <div className="w-full md:w-auto p-1">
-                <Button 
-                  className="w-full md:w-auto h-14 px-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95"
-                  onClick={handleSearch}
-                >
-                  Find Jobs
-                </Button>
-              </div>
-            </div>
-
-            {/* Popular Searches */}
-            <div className="mt-10 text-center">
-              <span className="text-lg font-semibold text-slate-900 dark:text-slate-200 block md:inline mb-3 md:mb-0 mr-4">
-                Popular searches:
-              </span>
-              <div className="inline-flex flex-wrap justify-center gap-x-6 gap-y-3">
-                {popularKeywords.map((keyword, index) => (
-                  <button 
-                    key={index} 
-                    onClick={() => setSearch({...search, keyword})}
-                    className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border-b-2 border-transparent hover:border-blue-600 dark:hover:border-blue-400 pb-0.5"
-                  >
-                    {keyword}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <JobSearchForm variant="home" />
           </div>
         </Container>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-20 bg-slate-50 dark:bg-slate-950">
-        <Container>
-          <div className="flex justify-between items-end mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl font-semibold text-slate-900 dark:text-white mb-3">Browse Jobs by Category</h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400 font-normal">Explore roles tailored to your unique expertise and career goals.</p>
-            </div>
-            <Link to="/jobsnearme/industry" className="hidden sm:flex items-center text-blue-600 dark:text-blue-400 font-bold text-lg hover:text-blue-700 dark:hover:text-blue-300">
-               Browse all <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
-          </div>
+      {/* 2. Categories Section */}
+      {isHomeLoading ? (
+        <section className="py-24 bg-slate-50 dark:bg-slate-950">
+          <Container>
+            <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded w-1/4 mx-auto mb-16 animate-pulse" />
+            <SectionSkeleton items={6} columns={3} />
+          </Container>
+        </section>
+      ) : (
+        <CategorySection industries={industries} />
+      )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {categories.map((cat, idx) => (
-              <button 
-                key={idx} 
-                onClick={() => {
-                  setSearch({...search, keyword: cat.name});
-                  // Optionally navigate immediately or let user click Find Jobs
-                }}
-                className="flex items-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:shadow-xl dark:hover:shadow-blue-900/10 transition-all group hover:-translate-y-1 text-left"
-              >
-                <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mr-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                  {cat.icon}
-                </div>
-                <div>
-                  <h3 className="text-xl font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
-                  <p className="text-base text-slate-500 dark:text-slate-400 mt-1">{cat.jobs}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </Container>
-      </section>
+      {/* 3. Companies Section */}
+      {isHomeLoading ? (
+        <section className="py-20 bg-white dark:bg-slate-900">
+          <Container>
+            <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded w-1/4 mb-16 animate-pulse" />
+            <SectionSkeleton items={4} columns={4} />
+          </Container>
+        </section>
+      ) : (
+        <CompanySection companies={companies} />
+      )}
+
+      {/* 4. Popular Locations Section */}
+      {isHomeLoading ? (
+        <section className="py-24 bg-white dark:bg-slate-900">
+          <Container>
+            <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded w-1/4 mb-16 animate-pulse" />
+            <SectionSkeleton items={4} columns={4} />
+          </Container>
+        </section>
+      ) : (
+        <LocationSection locations={locations} />
+      )}
 
       {/* Features Section */}
       <section className="py-24 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800">
@@ -339,54 +238,6 @@ const HomePage = () => {
         </Container>
       </section>
 
-      {/* Locations Section */}
-      <section className="py-20 bg-slate-50 dark:bg-slate-950">
-        <Container>
-          <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl font-semibold text-slate-900 dark:text-white mb-3">Top Hiring Hubs</h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400 font-normal">Join thriving professional communities in leading cities.</p>
-            </div>
-            <Link to="/jobsnearme/location" className="flex items-center text-blue-600 dark:text-blue-400 font-bold text-lg hover:text-blue-700 dark:hover:text-blue-300 transition-all">
-              View all locations <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {locations.map((loc, idx) => (
-              <button 
-                key={idx} 
-                onClick={() => {
-                  setSearch({...search, cityState: `${loc.city}, ${loc.state}`, country: loc.country});
-                }}
-                className="group block rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:shadow-2xl dark:hover:shadow-blue-900/10 transition-all hover:-translate-y-2 text-left w-full"
-              >
-                <div className="aspect-[4/3] relative overflow-hidden bg-slate-200 dark:bg-slate-800">
-                  <img 
-                    src={loc.image} 
-                    alt={loc.city} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=2070&auto=format&fit=crop';
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90"></div>
-                  <div className="absolute bottom-6 left-6 text-white">
-                    <h3 className="text-2xl font-semibold mb-1">{loc.city}</h3>
-                    <p className="text-base text-white/80 font-medium">{loc.state}, {loc.country}</p>
-                  </div>
-                </div>
-                <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
-                  <span className="text-base font-semibold text-slate-700 dark:text-slate-300 font-normal">{loc.jobs} jobs available</span>
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                    <ChevronRight className="w-5 h-5" />
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </Container>
-      </section>
 
       {/* CTA Section */}
       <section className="py-24 bg-blue-600 dark:bg-blue-700 text-white text-center relative overflow-hidden mb-0">

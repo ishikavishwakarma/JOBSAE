@@ -5,12 +5,16 @@ import { toAbsoluteUrl } from '@/lib/helpers';
 import { ChatSheet } from '@/partials/topbar/chat-sheet';
 import { NotificationsSheet } from '@/partials/topbar/notifications-sheet';
 import { UserDropdownMenu } from '@/partials/topbar/user-dropdown-menu';
-import { MessageCircleMore, MessageSquareDot, Search, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { MapPin, MessageCircleMore, MessageSquareDot, Search, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import JobSearchForm from '@/pages/home/components/JobSearchForm';
 
 export function Header({ width }) {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
 
   return (
     <header className="flex items-center supports-[backdrop-filter]:bg-background sticky top-0 z-50 shrink-0 h-(--header-height) border-b border-border bg-background">
@@ -29,20 +33,10 @@ export function Header({ width }) {
             />
           </Link>
 
-          {/* Desktop Search */}
-          <div className="hidden lg:flex items-center relative w-full max-w-[400px]">
-            <Search className="absolute left-3 size-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search jobs, companies..." 
-              className="w-full bg-muted border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary focus:bg-background transition-all"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  window.location.href = `/jobs/search?q=${e.target.value}`;
-                }
-              }}
-            />
-          </div>
+          {/* Desktop Search - Hidden on Home Page */}
+          {!isHomePage && (
+            <JobSearchForm variant="header" />
+          )}
         </div>
 
         {/* Mobile Search Input Overlay */}
@@ -120,3 +114,4 @@ export function Header({ width }) {
     </header>
   );
 }
+// export { Header };

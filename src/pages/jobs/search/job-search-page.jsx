@@ -6,47 +6,126 @@ import { JobDetails } from './components/JobDetails';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { Share2, Search as SearchIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { SearchJobList, searchJob, selectKeywordData, selectSearchResult } from '@/services/redux/slice/jobSlice';
+import { toast } from 'sonner';
 
-const JOBS_DATA = [
-  {
-    id: 1,
-    title: 'Senior Frontend Developer (React)',
-    company: 'TechFlow Systems',
-    logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSaSnofJIi09OSYLOI5RGwA3B5HfIJXu253_g&s',
-    location: 'Remote / New York',
-    postedAt: '2h ago',
-    applicants: 45,
-    description: 'We are looking for a Senior Frontend Developer with deep expertise in React and modern CSS. You will be responsible for building high-performance, accessible, and beautiful web applications.<br/><br/><b>Requirements:</b><br/>- 5+ years of React experience<br/>- Strong TypeScript skills<br/>- Experience with Tailwind CSS'
-  },
-  {
-    id: 2,
-    title: 'UI/UX Designer',
-    company: 'CreativePulse',
-    logo: toAbsoluteUrl('/media/brand-logos/figma.svg'),
-    location: 'London, UK',
-    postedAt: '5h ago',
-    applicants: 12,
-    description: 'Join our award-winning design team to create world-class digital products. You should have a strong portfolio and experience with design systems.'
-  },
-  {
-    id: 3,
-    title: 'Full Stack Engineer',
-    company: 'CloudNative',
-    logo: toAbsoluteUrl('/media/brand-logos/google.svg'),
-    location: 'San Francisco, CA',
-    postedAt: '1d ago',
-    applicants: 89,
-    description: 'Help us scale our cloud infrastructure. Experience with Node.js and AWS is a must.'
-  }
-];
+
 
 export default function JobSearchPage() {
-  const [selectedJob, setSelectedJob] = useState(JOBS_DATA[0]);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const locationPath = useLocation();
   const params = useParams();
   const [searchParams] = useSearchParams();
   
   const { keyword, company, industry, country, state, city, pageNo } = params;
+  const keywordData = useSelector(selectKeywordData);
+  const searchResult = useSelector(selectSearchResult);
+  const jobs = searchResult?.Return?.Jobs?.Jobs || [];
+
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(Number(pageNo) || 1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Sync selected job when jobs list changes
+  useEffect(() => {
+    if (jobs.length > 0 && !selectedJob) {
+      setSelectedJob(jobs[0]);
+    }
+  }, [jobs, selectedJob]);
+
+  const fetchJobs = async ({
+    mode = "initial",
+    pageNum = 1,
+    filters = {},
+    method = "Search",
+  } = {}) => {
+    if (isFetching) return;
+    setIsFetching(true);
+    try {
+      setHasError(false);
+      let requestPage = pageNum;
+      
+      if (mode === "append") {
+        requestPage = (keywordData?.currentPage || 1) + 1;
+      }
+
+      // Format keyword for display/API if needed
+      const formattedKeyword = keyword
+        ?.split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+
+      const requestData = {
+        method,
+        keyword: formattedKeyword || keywordData?.keyword || "",
+        location: keywordData?.location || "",
+        pageNum: requestPage,
+        jobTitles: filters.title || null,
+        industries: filters.category || null,
+        companies: filters.companies || null,
+        benefits: filters.benefits || null,
+        jobTypes: filters.jobTypes || null,
+        radius: filters.radius || null,
+        dates: filters.dates || null,
+      };
+
+      if (mode === "page") {
+        let basePath = locationPath.pathname.replace(/\/\d+$/, "");
+        navigate(`${basePath}/${requestPage}`);
+      }
+
+      if (mode !== "append" && mode !== "page") {
+        dispatch(searchJob.request());
+      }
+
+      const data = await dispatch(SearchJobList(requestData)).unwrap();
+      
+      if (!data) return;
+      
+      const newJobs = data?.Return?.Jobs?.Jobs || [];
+      const totalCount = data?.Return?.Jobs?.Total_Count || 0;
+      setTotalPages(Math.ceil(totalCount / 10));
+
+      if (mode === "append") {
+        if (newJobs.length === 0) {
+          setHasMore(false);
+        } else {
+          dispatch(searchJob.appendJobs({
+            data: newJobs,
+            currentPage: requestPage,
+          }));
+          setPage(requestPage);
+        }
+      } else {
+        dispatch(searchJob.success({
+          ...data,
+          keyword: formattedKeyword || keywordData?.keyword,
+          location: keywordData?.location,
+          currentPage: requestPage,
+          locKey: keywordData?.locKey,
+        }));
+        setPage(requestPage);
+        setHasMore(newJobs.length > 0);
+      }
+    } catch (err) {
+      setHasError(true);
+      toast.error(err.message || "Error occurred during search");
+      dispatch(searchJob.failure(err));
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs({ mode: "initial", pageNum: 1 });
+    window.history.replaceState({}, document.title);
+  }, [keyword, keywordData?.location]);
 
   useEffect(() => {
     let title = 'Job Search | JOBSAE';
@@ -93,14 +172,39 @@ export default function JobSearchPage() {
                 <Button variant="ghost" size="icon" className="size-8 rounded-lg"><Share2 className="size-4" /></Button>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar divide-y divide-border/50">
-                {JOBS_DATA.map(job => (
-                  <JobCard 
-                    key={job.id} 
-                    job={job} 
-                    isActive={selectedJob?.id === job.id}
-                    onClick={() => setSelectedJob(job)}
-                  />
-                ))}
+                {isFetching && page === 1 ? (
+                  <div className="flex flex-col items-center justify-center h-64 gap-4">
+                    <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm font-bold text-muted-foreground">Searching for jobs...</p>
+                  </div>
+                ) : jobs.length > 0 ? (
+                  <>
+                    {jobs.map(job => (
+                      <JobCard 
+                        key={job.id || job.Job_Id} 
+                        job={job} 
+                        isActive={selectedJob?.id === job.id || selectedJob?.Job_Id === job.Job_Id}
+                        onClick={() => setSelectedJob(job)}
+                      />
+                    ))}
+                    {hasMore && (
+                      <div className="p-4 flex justify-center">
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => fetchJobs({ mode: "append" })}
+                          disabled={isFetching}
+                        >
+                          {isFetching ? "Loading..." : "Load More"}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-64 p-8 text-center">
+                    <p className="text-muted-foreground font-bold">No jobs found matching your criteria.</p>
+                    <Button variant="link" onClick={() => fetchJobs({ mode: "initial" })}>Try again</Button>
+                  </div>
+                )}
               </div>
             </div>
 
