@@ -20,6 +20,7 @@ import { startAppProfile, appProfileReady } from './utils/Security/appInit';
 import { loadApplicationProfileIfNeeded } from './utils/Security/profileLoader';
 import { useState } from 'react';
 import { ScreenLoader } from './components/common/screen-loader';
+import { locationData } from './services/redux/slice/authSlice';
 
 const { BASE_URL } = import.meta.env;
 
@@ -41,6 +42,9 @@ export function App() {
     if (startAppProfile()) {
       dispatch(loadApplicationProfileIfNeeded());
     }
+
+    // Sync location data from localStorage if Redux is empty
+    dispatch(locationData());
 
     // Wait for profile to be ready to hide global loader
     appProfileReady.then(() => {

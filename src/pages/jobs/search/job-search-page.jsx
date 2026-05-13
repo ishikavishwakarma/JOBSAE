@@ -160,8 +160,8 @@ export default function JobSearchPage() {
         <Container className="py-6 h-[calc(100vh-140px)]">
           <div className="flex bg-card border border-border rounded-2xl overflow-hidden h-full shadow-xl shadow-black/5">
             {/* Left List */}
-            <div className="w-full md:w-[420px] border-r border-border flex flex-col shrink-0 bg-background">
-              <div className="p-5 border-b border-border bg-card/30 flex justify-between items-center">
+            <div className="w-full lg:w-[420px] border-r border-border flex flex-col shrink-0 bg-background">
+              <div className="p-3 border-b border-border bg-card/30 flex justify-between items-center">
                 <div>
                   <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
                     <SearchIcon className="size-3" />
@@ -209,7 +209,7 @@ export default function JobSearchPage() {
             </div>
 
             {/* Right Details */}
-            <div className="hidden md:block flex-1 overflow-hidden bg-background">
+            <div className="hidden lg:block flex-1 overflow-hidden bg-background">
               <JobDetails job={selectedJob} />
             </div>
           </div>

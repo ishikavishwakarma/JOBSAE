@@ -10,18 +10,36 @@ import jobReducer from "./slice/jobSlice";
 import { setStore } from "./storeAccessor"; // Import setStore
 import { api } from "./apis";
 
-export const store = configureStore({
-    reducer: {
-        route: routeReducer,
-        uploadFiles: uploadFilesReducer,
-        profile: profileReducer,
-        auth: authReducer,
-        job: jobReducer,
-        [api.reducerPath]: api.reducer,
-    },
-    middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(api.middleware),
+import { persistStore, persistReducer } from "redux-persist";
+import storageSession from "redux-persist/lib/storage/session";
+import { combineReducers } from "@reduxjs/toolkit";
+
+const persistConfig = {
+    key: "root",
+    storage: storageSession,
+    whitelist: ["auth"], // persist only auth slice
+};
+
+const rootReducer = combineReducers({
+    route: routeReducer,
+    uploadFiles: uploadFilesReducer,
+    profile: profileReducer,
+    auth: authReducer,
+    job: jobReducer,
+    [api.reducerPath]: api.reducer,
 });
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+export const store = configureStore({
+    reducer: persistedReducer,
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: false,
+        }).concat(api.middleware),
+});
+
+export const persistor = persistStore(store);
 
 // ✅ Set the store instance for accessor
 setStore(store);

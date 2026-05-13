@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { decryptResponse } from '@/utils/helpers/apiHelper';
 import { Container } from '@/components/common/container';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { ChatSheet } from '@/partials/topbar/chat-sheet';
 import { NotificationsSheet } from '@/partials/topbar/notifications-sheet';
 import { UserDropdownMenu } from '@/partials/topbar/user-dropdown-menu';
-import { MapPin, MessageCircleMore, MessageSquareDot, Search, X } from 'lucide-react';
+import { MapPin, MessageCircleMore, MessageSquareDot, Search, X, ShoppingCart, LogIn } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,7 +16,23 @@ import JobSearchForm from '@/pages/home/components/JobSearchForm';
 export function Header({ width }) {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isHomePage = location.pathname === '/';
+
+  const { userData, token } = useSelector((state) => state.auth);
+  const user = useMemo(() => {
+    if (!userData) return null;
+    try {
+      const decrypted = decryptResponse(userData);
+      console.log("decrypted", decrypted);
+      // Unwrap normalization: result might be [ { Return: { User: { tblUser: [...] } } } ]
+      const rawUser = decrypted?.[0]?.Return?.User?.tblUser?.[0] || decrypted?.Return?.User?.tblUser?.[0] || decrypted?.tblUser?.[0];
+      return rawUser;
+    } catch (e) {
+      console.error("Header decryption failed", e);
+      return null;
+    }
+  }, [userData]);
 
   return (
     <header className="flex items-center supports-[backdrop-filter]:bg-background sticky top-0 z-50 shrink-0 h-(--header-height) border-b border-border bg-background">
@@ -22,13 +40,8 @@ export function Header({ width }) {
         <div className={cn("flex items-center gap-10 flex-1 transition-all duration-300", showMobileSearch ? "opacity-0 invisible w-0" : "opacity-100 visible")}>
           <Link to="/" className="shrink-0">
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-circle.svg')}
-              className="dark:hidden min-h-[42px]"
-              alt="logo"
-            />
-            <img
-              src={toAbsoluteUrl('/media/app/mini-logo-circle-dark.svg')}
-              className="hidden dark:inline-block min-h-[42px]"
+              src={toAbsoluteUrl('/media/avatars/ae.png')}
+              className="min-h-[42px] w-auto h-10 object-contain"
               alt="logo"
             />
           </Link>
@@ -92,23 +105,51 @@ export function Header({ width }) {
                 </Button>
               }
             />
+            
+            {/* Cart Button */}
+            <Button 
+              variant="ghost" 
+              mode="icon" 
+              shape="circle" 
+              className="size-9 hover:bg-muted"
+              onClick={() => navigate('/purchase-options')}
+            >
+              <ShoppingCart className="size-4.5!" />
+            </Button>
           </div>
           <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block"></div>
-          <UserDropdownMenu
-            trigger={
-              <div className="flex items-center gap-3 cursor-pointer group">
-                <div className="hidden sm:flex flex-col items-end leading-none">
-                  <span className="text-sm font-semibold group-hover:text-primary transition-colors">Admin User</span>
-                  <span className="text-[10px] text-muted-foreground">Premium Member</span>
+          
+          {user ? (
+            <UserDropdownMenu
+              trigger={
+                <div className="flex items-center gap-3 cursor-pointer group">
+                  <div className="hidden sm:flex flex-col items-end leading-none">
+                    <span className="text-sm font-semibold group-hover:text-primary transition-colors text-slate-900 dark:text-slate-100">
+                      {user?.Full_Name || "User"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {user?.User_Type ? `${user.User_Type} Member` : "Member"}
+                    </span>
+                  </div>
+                  <img
+                    className="size-9 rounded-full border-2 border-transparent group-hover:border-primary transition-all shrink-0 shadow-sm"
+                    src={user?.Profile_Picture_Url || toAbsoluteUrl('/media/avatars/gray/5.png')}
+                    alt=""
+                  />
                 </div>
-                <img
-                  className="size-9 rounded-full border-2 border-transparent group-hover:border-primary transition-all shrink-0"
-                  src={toAbsoluteUrl('/media/avatars/gray/5.png')}
-                  alt=""
-                />
-              </div>
-            }
-          />
+              }
+            />
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2 font-bold border-hw-blue-dark text-hw-blue-dark hover:bg-hw-blue-dark hover:text-white transition-all shadow-sm rounded-full px-5"
+              onClick={() => navigate('/auth/signin')}
+            >
+              <LogIn className="size-4" />
+              <span>Login</span>
+            </Button>
+          )}
         </div>
       </Container>
     </header>

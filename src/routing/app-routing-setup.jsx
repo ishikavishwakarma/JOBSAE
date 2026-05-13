@@ -452,6 +452,8 @@ export function AppRoutingSetup() {
           <Route path="/auth/get-started" element={<AccountGetStartedPage />} />
         </Route>
       </Route>
+      <Route path="signin" element={<Navigate to="/auth/signin" />} />
+      <Route path="signup" element={<Navigate to="/auth/signup" />} />
       <Route path="error/*" element={<ErrorRouting />} />
       <Route path="auth/*" element={<AuthRouting />} />
       <Route path="*" element={<Navigate to="/error/404" />} />

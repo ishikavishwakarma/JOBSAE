@@ -7,8 +7,12 @@ import { ResetPasswordChanged } from './pages/extended/reset-password-changed';
 import { ResetPasswordCheckEmail } from './pages/extended/reset-password-check-email';
 import { TwoFactorAuth } from './pages/extended/tfa';
 import { ResetPasswordPage } from './pages/reset-password-page';
-import { SignInPage } from './pages/signin-page';
-import { SignUpPage } from './pages/signup-page';
+import { 
+  SignInPage, 
+  SignUpPage, 
+  SignUpOnboardingPage, 
+  SignUpVerificationPage 
+} from '@/pages/auth';
 
 // Define the auth routes
 export const authRoutes = [
@@ -23,6 +27,14 @@ export const authRoutes = [
       {
         path: 'signup',
         element: <SignUpPage />,
+      },
+      {
+        path: 'signup-onboarding',
+        element: <SignUpOnboardingPage />,
+      },
+      {
+        path: 'signup-verification',
+        element: <SignUpVerificationPage />,
       },
       {
         path: 'change-password',

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   Search, 
   MapPin, 
@@ -19,7 +19,7 @@ import { resolveCurrentLocation } from '@/lib/location';
 import { useGeoLocationGet } from '@/services/redux/apis/jobApi';
 import { searchJob, selectKeywordData, SearchJobList } from '@/services/redux/slice/jobSlice';
 
-const JobSearchForm = ({ variant = 'home' }) => {
+const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) => {
   const navigate = useNavigate();
   const searchContainerRef = useRef(null);
 
@@ -82,6 +82,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
   const fetchStarted = useRef(false);
   const dispatch = useDispatch();
   const keywordData = useSelector(selectKeywordData);
+  const [geoPermission, setGeoPermission] = useState('prompt'); // 'prompt', 'granted', 'denied'
 
   const { getKeywordSuggestions, isLoading: isLoadingKeywords } = useGetKeywordSuggestionList();
   const { getLocationSuggestions, isLoading: isLoadingLocations } = useGetLocationSuggestions();
@@ -104,6 +105,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
           countryCode: geoLocation.Country_Cd || prev.countryCode,
         }));
         if (geoLocation.Country_Id) setSelectedCountryId(geoLocation.Country_Id);
+        if (geoLocation.Country_Cd) setSelectedCountryFlag(geoLocation.Country_Cd);
       }
     } catch (err) {
       console.error("Failed to use current location", err);
@@ -142,10 +144,13 @@ const JobSearchForm = ({ variant = 'home' }) => {
   const fetchAllCountries = useCallback(async () => {
     try {
       // Fetch initial geo location (detected location)
-      getGeoLocation({ Action: "Get" }).then(res => {
-        const geo = res?.Return?.Geo_Location;
+      // getGeoLocation({ Action: "Get" }).then(res => {
+      //   const geo = res?.Return?.Geo_Location;
+      
+        const geo = localStorage.getItem("user_location") ;
+      
         if (geo) setDetectedLocation(geo);
-      }).catch(err => console.error("Initial geo fetch failed", err));
+      // }).catch(err => console.error("Initial geo fetch failed", err));
 
       const res = await getLocationSuggestions({
         listType: "Country_Lst",
@@ -171,6 +176,14 @@ const JobSearchForm = ({ variant = 'home' }) => {
     if (fetchStarted.current) return;
     fetchStarted.current = true;
     fetchAllCountries();
+
+    // Check geolocation permission
+    if ("permissions" in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then(result => {
+        setGeoPermission(result.state);
+        result.onchange = () => setGeoPermission(result.state);
+      });
+    }
   }, [fetchAllCountries]);
 
   const fetchLocationSuggestions = useCallback(
@@ -197,7 +210,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     const { keyword, cityState: location, country, countryCode } = search;
-    
+     setFormError("");
     if (!keyword?.trim() && !location?.trim()) {
       setFormError("Please enter a job keyword or location to start search.");
       return;
@@ -248,7 +261,11 @@ const JobSearchForm = ({ variant = 'home' }) => {
         callerUrl: "/jobsnearme/jobsearch",
       };
 
-      navigate(callerPath, { state: { method: "Search" } });
+      if (variant === 'home' && onNavigate) {
+        onNavigate(callerPath);
+      } else {
+        navigate(callerPath, { state: { method: "Search" } });
+      }
 
       // Save to Redux and Local Storage
       const searchState = {
@@ -287,11 +304,6 @@ const JobSearchForm = ({ variant = 'home' }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const popularKeywords = [
-    'Work from home', 'Software Engineer', 'Data Analyst', 'Marketing Manager', 
-    'Project Manager', 'Customer Service', 'Sales Representative', 
-    'Graphic Designer', 'Nurse', 'Part-time'
-  ];
 
   if (variant === 'header') {
     return (
@@ -393,6 +405,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
               isLoading={isLoadingLocations || isFetchingCurrentLocation}
               showUseCurrentLocation={true}
               detectedLocation={detectedLocation}
+              geoPermission={geoPermission}
               onUseCurrentLocation={handleUseCurrentLocation}
               onSelect={(item) => {
                 setSearch({ 
@@ -402,6 +415,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
                   countryCode: item.Country_Cd || item.Flag_Cd || search.countryCode
                 });
                 if (item.Country_Id) setSelectedCountryId(item.Country_Id);
+                if (item.Country_Cd || item.Flag_Cd) setSelectedCountryFlag(item.Country_Cd || item.Flag_Cd);
                 setActiveDropdown(null);
               }} 
             />
@@ -426,8 +440,8 @@ const JobSearchForm = ({ variant = 'home' }) => {
 
   // Home Page Variant
   return (
-    <div className="relative w-full" ref={searchContainerRef}>
-      <div className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)]  flex flex-col md:flex-row items-center gap-0 group transition-all hover:border-blue-500 dark:hover:border-blue-400">
+    <div className="relative  w-full" ref={searchContainerRef}>
+      <div className="bg-white h-52 md:h-fit py-1 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)]  flex flex-col md:flex-row items-center gap-0 group transition-all hover:border-blue-500 dark:hover:border-blue-400">
         
         <SearchInput 
           id="keyword"
@@ -441,6 +455,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
           setActiveDropdown={setActiveDropdown}
           isLoading={isLoadingKeywords}
           onChange={val => {
+            setFormError("");
             setSearch({...search, keyword: val});
             fetchKeywordSuggestions(val);
           }}
@@ -466,6 +481,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
           detectedLocation={detectedLocation}
           onUseCurrentLocation={handleUseCurrentLocation}
           onChange={val => {
+            setFormError("");
             setSearch({...search, cityState: val});
             fetchLocationSuggestions(val, selectedCountryId);
           }}
@@ -477,6 +493,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
               countryCode: item.Country_Cd || item.Flag_Cd || search.countryCode
             });
             if (item.Country_Id) setSelectedCountryId(item.Country_Id);
+            if (item.Country_Cd || item.Flag_Cd) setSelectedCountryFlag(item.Country_Cd || item.Flag_Cd);
             setActiveDropdown(null);
           }}
         />
@@ -486,17 +503,18 @@ const JobSearchForm = ({ variant = 'home' }) => {
         <SearchInput 
           id="country"
           icon={Globe}
-          placeholder="Country"
-          value={search.country}
+          placeholder="Code"
+          value={search.countryCode}
           suggestions={suggestions.countries}
           flagCd={selectedCountryFlag}
-          type="location"
-          activeDropdown={activeDropdown}
+          type="country" 
+          className="md:w-40 h-12 flex-none"
+          activeDropdown={activeDropdown} 
           setActiveDropdown={setActiveDropdown}
-          isLoading={isLoadingLocations} // Initial countries load also uses this
+          isLoading={isLoadingLocations}
           onChange={val => {
-            setSearch({...search, country: val});
-            // Local filtering
+            setFormError("");
+            setSearch({...search, country: val, countryCode: val});
             const filtered = allCountries.filter(c => 
               c.Country.toLowerCase().includes(val.toLowerCase()) || 
               (c.Flag_Cd && c.Flag_Cd.toLowerCase().includes(val.toLowerCase()))
@@ -516,7 +534,7 @@ const JobSearchForm = ({ variant = 'home' }) => {
 
         <div className="w-full md:w-auto p-1">
           <Button 
-            className="w-full md:w-auto h-14 px-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-70"
+            className="w-full md:w-auto h-10 px-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-70"
             onClick={handleSearch}
             disabled={searchLoading}
           >
@@ -544,18 +562,24 @@ const JobSearchForm = ({ variant = 'home' }) => {
           Popular searches:
         </span>
         <div className="inline-flex flex-wrap justify-center gap-x-6 gap-y-3">
-          {popularKeywords.map((keyword, index) => (
-            <button 
-              key={index} 
-              onClick={() => {
-                setSearch({...search, keyword});
-                handleSearch();
-              }}
-              className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border-b-2 border-transparent hover:border-blue-600 dark:hover:border-blue-400 pb-0.5"
-            >
-              {keyword}
-            </button>
-          ))}
+          {popularKeywords.map((keyword, index) => {
+            const path = `/jobsnearme${keyword.URL || keyword.mapKey}`;
+            return (
+              <Link 
+                key={index} 
+                to={path}
+                onClick={(e) => {
+                  if (variant === 'home' && onNavigate) {
+                    e.preventDefault();
+                    onNavigate(path);
+                  }
+                }}
+                className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border-b-2 border-transparent hover:border-blue-600 dark:hover:border-blue-400 pb-0.5"
+              >
+                {keyword.Title || keyword}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -581,29 +605,38 @@ const SearchInput = ({
   isLoading,
   onUseCurrentLocation,
   showUseCurrentLocation,
+  geoPermission,
   detectedLocation
 }) => (
-  <div className={cn("flex-1 relative flex items-center px-6 w-full md:w-auto h-14 transition-colors", className)}>
+  <div className={cn("flex-1 relative flex items-center px-6 w-full md:w-auto h-10 transition-colors", className)}>
     <div className="flex items-center gap-2 shrink-0">
-      <Icon className="w-6 h-6 text-slate-400 dark:text-slate-500" />
-      {flagCd && (
+      {flagCd ? (
         <img 
           src={`https://flagcdn.com/w40/${flagCd.toLowerCase()}.png`} 
           alt="flag"
-          className="w-5 h-3.5 object-cover rounded-sm shadow-sm"
+          className="w-6 h-4.5 object-cover rounded-sm shadow-sm"
         />
+      ) : (
+        <Icon className="w-6 h-6 text-slate-400 dark:text-slate-500" />
       )}
     </div>
     <input 
       placeholder={placeholder} 
-      className="w-full bg-transparent border-none focus:ring-0 text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 outline-none font-medium"
+      className="w-full bg-transparent border-none focus:ring-0 md:text-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 outline-none font-medium"
       value={value}
       onFocus={() => {
-        setActiveDropdown(id);
+        if (id === 'country' || (suggestions && suggestions.length > 0)) {
+          setActiveDropdown(id);
+        }
       }}
       onChange={e => {
-        onChange(e.target.value);
-        setActiveDropdown(id);
+        const val = e.target.value;
+        onChange(val);
+        if (val.trim().length > 0 || id === 'country') {
+          setActiveDropdown(id);
+        } else {
+          setActiveDropdown(null);
+        }
       }}
     />
     <ChevronDown className={cn("w-5 h-5 text-slate-400 dark:text-slate-500 transition-transform duration-200", activeDropdown === id && "rotate-180")} />
@@ -614,6 +647,7 @@ const SearchInput = ({
         isLoading={isLoading}
         showUseCurrentLocation={id === 'cityState' || id === 'location'}
         detectedLocation={detectedLocation}
+        geoPermission={geoPermission}
         onUseCurrentLocation={onUseCurrentLocation}
         onSelect={(item) => {
           onSelect(item);
@@ -623,7 +657,7 @@ const SearchInput = ({
   </div>
 );
 
-const SuggestionDropdown = ({ items, type, onSelect, isLoading, variant = 'home', showUseCurrentLocation, onUseCurrentLocation, detectedLocation }) => {
+const SuggestionDropdown = ({ items, type, onSelect, isLoading, variant = 'home', showUseCurrentLocation, onUseCurrentLocation, detectedLocation, geoPermission }) => {
   return (
     <div 
       className={cn(
@@ -633,7 +667,7 @@ const SuggestionDropdown = ({ items, type, onSelect, isLoading, variant = 'home'
       onClick={(e) => e.stopPropagation()}
     >
       <div className="max-h-[280px]  overflow-y-auto no-scrollbar py-2">
-        {showUseCurrentLocation && detectedLocation && (
+        {showUseCurrentLocation && geoPermission !== 'denied' && detectedLocation && (
           <button
             onClick={() => {
               onSelect({ 
@@ -658,7 +692,7 @@ const SuggestionDropdown = ({ items, type, onSelect, isLoading, variant = 'home'
           </button>
         )}
 
-        {showUseCurrentLocation && (
+        {showUseCurrentLocation && geoPermission !== 'denied' && !detectedLocation && (
           <button
             onClick={() => onUseCurrentLocation()}
             className="w-full px-6 py-3 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-3 transition-colors group border-b border-slate-100 dark:border-slate-800 mb-1"
@@ -680,23 +714,32 @@ const SuggestionDropdown = ({ items, type, onSelect, isLoading, variant = 'home'
           </div>
         ) : items.length > 0 ? (
           items.map((item, idx) => {
-            const label = type === 'keyword' ? item.Keyword : (item.Location || item.Country || item.Name);
-            const subLabel = type === 'keyword' ? null : `${item.City ? item.City + ', ' : ''}${item.State ? item.State + ', ' : ''}${item.Country || ''}`.replace(/, $/, '');
+            const label = type === 'keyword' ? item.Keyword : (type === 'country' ? (item.Flag_Cd || item.Country_Cd || item.Country) : (item.Location || item.Country || item.Name));
+            const subLabel = type === 'keyword' ? null : (type === 'country' ? null : `${item.City ? item.City + ', ' : ''}${item.State ? item.State + ', ' : ''}${item.Country || ''}`.replace(/, $/, ''));
             
             return (
               <button
                 key={idx}
                 onClick={() => onSelect(item)}
-                className="w-full px-6 py-2 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 flex flex-col gap-1 transition-colors group"
+                className="w-full px-6 py-2 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-3 transition-colors group"
               >
-                <span className="text-base font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  {label}
-                </span>
-                {subLabel && (
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
-                    {subLabel}
-                  </span>
+                {type === 'country' && item.Flag_Cd && (
+                  <img 
+                    src={`https://flagcdn.com/w40/${item.Flag_Cd.toLowerCase()}.png`} 
+                    alt="flag"
+                    className="w-5 h-3.5 object-cover rounded-sm shadow-sm shrink-0"
+                  />
                 )}
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-base font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {label}
+                  </span>
+                  {subLabel && (
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                      {subLabel}
+                    </span>
+                  )}
+                </div>
               </button>
             );
           })

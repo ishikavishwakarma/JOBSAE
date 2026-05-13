@@ -38,6 +38,8 @@ export const CUSTOM_LAYOUT_ROUTES = [
   { path: '/jobsnearme/keyword/:keyword/location/:country', element: JobSearchPage },
   { path: '/jobsnearme/company/:company/+/:country/:state/:city', element: JobSearchPage },
   { path: '/jobsnearme/industry/:industry/location/:country/:state/:city', element: JobSearchPage },
+  { path: '/jobsnearme/industry/:industry/location/:country', element: JobSearchPage },
+  { path: '/jobsnearme/company/:company/location/:country', element: JobSearchPage },
   { path: '/jobsnearme/page/:pageNo', element: JobSearchPage },
   { path: '/jobs/search', element: JobSearchPage },                
   { path: '/jobs/details/:id', element: JobDetailsStandalonePage },   

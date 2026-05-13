@@ -1,4 +1,4 @@
-import { useAuth } from '@/auth/context/auth-context';
+import { useMemo } from 'react';
 import { I18N_LANGUAGES } from '@/i18n/config';
 import {
   BetweenHorizontalStart,
@@ -20,6 +20,10 @@ import { toAbsoluteUrl } from '@/lib/helpers';
 import { useLanguage } from '@/providers/i18n-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { resetAuth } from '@/services/redux/slice/authSlice';
+import { decryptResponse } from '@/utils/helpers/apiHelper';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,20 +39,29 @@ import {
 import { Switch } from '@/components/ui/switch';
 
 export function UserDropdownMenu({ trigger }) {
-  const { logout, user } = useAuth();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { currenLanguage, changeLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
 
-  // Use display data from currentUser
-  const displayName =
-    user?.fullname ||
-    (user?.first_name && user?.last_name
-      ? `${user.first_name} ${user.last_name}`
-      : user?.username || 'User');
+  const { userData, token } = useSelector((state) => state.auth);
 
-  const displayEmail = user?.email || '';
-  // const displayAvatar = user?.pic || toAbsoluteUrl('/media/avatars/300-2.png');
-  const displayAvatar = toAbsoluteUrl('/media/avatars/300-2.png');
+  const user = useMemo(() => {
+    if (!userData || !token) return null;
+    try {
+      const decrypted = decryptResponse(userData);
+      return decrypted?.[0]?.Return?.User?.tblUser?.[0] || 
+             decrypted?.Return?.User?.tblUser?.[0] || 
+             decrypted?.tblUser?.[0];
+    } catch (e) {
+      return null;
+    }
+  }, [userData, token]);
+
+  // Use display data from currentUser
+  const displayName = user?.Full_Name || user?.fullname || 'User';
+  const displayEmail = user?.EMail_Address || user?.email || '';
+  const displayAvatar = user?.Profile_Picture_Url || toAbsoluteUrl('/media/avatars/gray/5.png');
 
   const handleLanguage = (lang) => {
     changeLanguage(lang);
@@ -56,6 +69,42 @@ export function UserDropdownMenu({ trigger }) {
 
   const handleThemeToggle = (checked) => {
     setTheme(checked ? 'dark' : 'light');
+  };
+
+  const handleLogout = () => {
+    // Social Logouts
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect();
+    }
+    
+    if (window.FB) {
+      window.FB.getLoginStatus((response) => {
+        if (response?.status === "connected") {
+          window.FB.logout();
+        }
+      });
+    }
+
+    // Preserve specific items
+    const selectedCountry = localStorage.getItem("selected_country");
+    const userLocation = localStorage.getItem("user_location");
+    const geoPersistent = localStorage.getItem("geo_location_persistent");
+    
+    localStorage.clear();
+    
+    // Restore preserved items
+    if (selectedCountry) localStorage.setItem("selected_country", selectedCountry);
+    if (userLocation) localStorage.setItem("user_location", userLocation);
+    if (geoPersistent) localStorage.setItem("geo_location_persistent", geoPersistent);
+
+    const geoLocation = sessionStorage.getItem("geo_location");
+    sessionStorage.clear();
+    if (geoLocation) sessionStorage.setItem("geo_location", geoLocation);
+
+    // Reset Redux
+    dispatch(resetAuth());
+    
+    navigate('/auth/signin');
   };
 
   return (
@@ -74,7 +123,7 @@ export function UserDropdownMenu({ trigger }) {
             <div className="flex flex-col">
               <Link
                 to="/account/home/get-started"
-                className="text-sm text-mono hover:text-primary font-semibold"
+                className="text-sm text-mono hover:text-primary font-semibold text-slate-900 dark:text-slate-100"
               >
                 {displayName}
               </Link>
@@ -283,8 +332,8 @@ export function UserDropdownMenu({ trigger }) {
           <Button
             variant="outline"
             size="sm"
-            className="w-full"
-            onClick={logout}
+            className="w-full border-hw-blue-dark text-hw-blue-dark hover:bg-hw-blue-dark hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-hw-blue-dark transition-all"
+            onClick={handleLogout}
           >
             Logout
           </Button>

@@ -16,7 +16,7 @@ import {
 } from "../redux/apis/types/api.types";
 import { appProfileReady, markAppProfileReady } from "../../utils/Security/appInit";
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface LocationData {
+export interface LocationData {
   Latitude: number | null;
   Longitude: number | null;
   Timestamp: string;
@@ -137,7 +137,7 @@ function logApiCall(params: {
   // );
 
   // ── General ──────────────────────────────────────────────────────────────
- 
+
 
   // ── Request headers ───────────────────────────────────────────────────────
   // console.log('%cRequest Headers', 'color:#888; font-size:11px; text-transform:uppercase;');
@@ -242,7 +242,28 @@ const buildHeaders = (
 const getLocationData = (): LocationData => {
   try {
     const state = getStore().getState() as { auth?: { locationData?: Partial<LocationData> } };
-    const loc = state.auth?.locationData ?? {};
+    let loc = state.auth?.locationData ?? {};
+
+    // 🔥 Fallback to localStorage if Redux state hasn't been populated yet
+    if (!loc.Latitude || !loc.Longitude) {
+      const saved = localStorage.getItem("user_location");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          // If it's from geo_location_persistent, it might have different case/names, 
+          // but authSlice format (Latitude/Longitude) is preferred.
+          loc = {
+            ...loc,
+            Latitude: loc.Latitude ?? parsed.Latitude ?? parsed.latitude ?? null,
+            Longitude: loc.Longitude ?? parsed.Longitude ?? parsed.longitude ?? null,
+            Location_Shared: loc.Location_Shared ?? parsed.Location_Shared ?? true
+          };
+        } catch (e) {
+          console.error("Failed to parse saved location", e);
+        }
+      }
+    }
+
     return {
       Latitude: loc.Latitude ?? null,
       Longitude: loc.Longitude ?? null,
@@ -281,24 +302,23 @@ const getServerVars = (): Record<string, string> | null => {
 
 const getUserRaw = (masterKey: string): UserRaw | null => {
   try {
-    const state = getStore().getState() as {
-      auth?: {
-        userData?: { Return?: string };
-        verifyData?: { Return?: string };
-      };
-    };
-    const userData = state.auth?.userData ?? {};
-    const verifyData = state.auth?.verifyData ?? {};
+    const state = getStore().getState() as any;
+    const userData = state.auth?.userData;
+    const verifyData = state.auth?.verifyData;
 
-    const fromUser = userData.Return
-      ? (decrypt(userData.Return, masterKey) as { User?: { tblUser?: UserRaw[] } })
-      : (userData as { User?: { tblUser?: UserRaw[] } });
+    // Use the standardized decryptResponse helper which handles nested parsing
+    const decryptedUser = userData ? decryptResponse(userData) : null;
+    const decryptedVerify = verifyData ? decryptResponse(verifyData) : null;
 
-    const fromVerify = verifyData.Return
-      ? (decrypt(verifyData.Return, masterKey) as { User?: { tblUser?: UserRaw[] } })
-      : (verifyData as { User?: { tblUser?: UserRaw[] } });
+    // Handle both array-wrapped [ { Return: ... } ] and unwrapped responses
+    const u = Array.isArray(decryptedUser) ? decryptedUser[0] : decryptedUser;
+    const v = Array.isArray(decryptedVerify) ? decryptedVerify[0] : decryptedVerify;
 
-    return fromUser?.User?.tblUser?.[0] ?? fromVerify?.User?.tblUser?.[0] ?? null;
+    // Extract tblUser from common nested structures
+    const rawUser = u?.Return?.User?.tblUser?.[0] || u?.User?.tblUser?.[0] || u?.tblUser?.[0];
+    const rawVerify = v?.Return?.User?.tblUser?.[0] || v?.User?.tblUser?.[0] || v?.tblUser?.[0];
+
+    return (rawUser as UserRaw) ?? (rawVerify as UserRaw) ?? null;
   } catch {
     return null;
   }
@@ -349,9 +369,9 @@ async function buildEncryptedPayload(
   const userRaw: UserRaw | null = includeUser ? getUserRaw(masterKey) : null;
   const userObj: UserBlock | null = includeUser
     ? {
-      User_Id: userRaw?.User_Id ?? 1,
-      User_Type_Id: userRaw?.User_Type_Id ?? 0,
-      Company_Id: userRaw?.Company_Id ?? 1,
+      User_Id: userRaw?.User_Id ?? null,
+      User_Type_Id: userRaw?.User_Type_Id ?? null,
+      Company_Id: userRaw?.Company_Id ?? null,
     }
     : null;
 
@@ -478,7 +498,7 @@ async function buildFileUploadBody(
 
 function handleSpecialResponses(decrypted: DecryptedResponse, requestBody: any, rawData?: any): void {
   if (requestBody && requestBody.Call) {
-    log.raw( requestBody.Call);
+    log.raw(requestBody.Call);
   }
   // console.log("handleSpecialResponses", decrypted);
   // Dynamic key and Unlock logic
@@ -505,6 +525,22 @@ function handleSpecialResponses(decrypted: DecryptedResponse, requestBody: any, 
       secure: true, sameSite: "Strict", expires: 1,
     });
     log.info("🍪 Session ID rotated");
+  }
+
+  // 📍 CACHE: Persistent Geo_Location
+  const geoLocation = decrypted?.Return?.Geo_Location || (decrypted as any)?.Geo_Location;
+  if (geoLocation) {
+    const existingRaw = localStorage.getItem('geo_location_persistent');
+    let existing = null;
+    try { existing = existingRaw ? JSON.parse(existingRaw) : null; } catch (e) { }
+
+    // Only update if the new geoLocation has data
+    // If new is null/empty but old exists, we keep the old one
+    const hasData = geoLocation.City || geoLocation.Country || geoLocation.Latitude;
+    if (hasData) {
+      localStorage.setItem('geo_location_persistent', JSON.stringify(geoLocation));
+      log.success("📍 Persistent Geo_Location updated in localStorage");
+    }
   }
   // Location prompt
   if (decrypted?.Result?.Action_Items?.Ask_Location_Share === null) {
@@ -655,11 +691,11 @@ export const encryptedBaseQuery: BaseQueryFn<
     if (result.data && shouldDecrypt) {
       try {
         const decrypted = await decryptResponse(result.data) as any;
-        
+
         // Normalize response: many APIs return [ { Return, Footer, Helmet, etc. } ]
         // We unwrap the first element to provide a consistent object structure
         const normalizedData = Array.isArray(decrypted) && decrypted.length > 0 ? decrypted[0] : decrypted;
-        
+
         result.data = normalizedData;
         log.decrypted("🔓 Decrypted API Response:", normalizedData);
         handleSpecialResponses(normalizedData, body, result.data);

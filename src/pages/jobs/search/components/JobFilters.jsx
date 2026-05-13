@@ -51,7 +51,7 @@ export function JobFilters({ defaultKeyword = '' }) {
     <div className="bg-background border-b border-border sticky top-(--header-height) z-40 bg-background/95 backdrop-blur-sm w-full overflow-x-hidden">
       <Container className="mx-auto py-2 md:py-3 px-4 md:px-6 overflow-hidden">
         {/* Search Row - Integrated with Desktop too if needed, but let's stick to user intent */}
-        <div className="mb-3 relative group w-full lg:max-w-md">
+        {/* <div className="mb-3 relative group w-full lg:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <input
             type="text"
@@ -60,7 +60,7 @@ export function JobFilters({ defaultKeyword = '' }) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </div>
+        </div> */}
 
         {/* Filters Row - Responsive Scroll */}
         <div className="flex items-center overflow-x-auto no-scrollbar w-full touch-pan-x pb-1 flex-nowrap gap-2">
