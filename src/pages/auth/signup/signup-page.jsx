@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import {
   AlertCircle,
   Check,
@@ -14,15 +15,15 @@ import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { getSignupSchema } from '@/auth/forms/signup-schema';
-import { updateUserData, authSuccess } from '@/services/redux/slice/authSlice';
-import { useRegister, useCheckUserExist } from '@/services/redux/apis/userApi';
+import { authSuccess, updateUserData } from '@/services/redux/slice/authSlice';
+import { useRegister, useCheckUserExist, useLogin } from '@/services/redux/apis/userApi';
 
 // Step Components
 import { SocialStep } from './components/social-step';
 import { RoleStep } from './components/role-step';
 import { DetailsStep } from './components/details-step';
 import { PasswordStep } from './components/password-step';
-import { decryptResponse } from '../../../utils/helpers/apiHelper';
+import { decryptResponse, formatSocialData } from '../../../utils/helpers/apiHelper';
 
 export function SignUpPage() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export function SignUpPage() {
   
   const { register: registerUser, isLoading: isRegistering } = useRegister();
   const { checkUserExist } = useCheckUserExist();
+  const { login: loginApi } = useLogin();
 
   const [activeStep, setActiveStep] = useState(1);
   const [isSocialSignup, setIsSocialSignup] = useState(false);
@@ -40,8 +42,10 @@ export function SignUpPage() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
+  const schema = useMemo(() => getSignupSchema('signup', isSocialSignup), [isSocialSignup]);
+  
   const form = useForm({
-    resolver: zodResolver(getSignupSchema('signup')),
+    resolver: zodResolver(schema),
     defaultValues: {
       email: '',
       password: '',
@@ -62,9 +66,13 @@ export function SignUpPage() {
   useEffect(() => {
     if (userData && (loginType === 'Google' || loginType === 'Facebook' || loginType === 'Apple')) {
       setIsSocialSignup(true);
-      const email = userData.email || '';
-      const firstName = userData.given_name || userData.first_name || userData.full_name?.given_name || '';
-      const lastName = userData.family_name || userData.last_name || userData.full_name?.family_name || '';
+      
+      // Access nested data if available
+      const profile = userData.googleData || userData.facebookData || userData.appleData || userData;
+      
+      const email = profile.email || '';
+      const firstName = profile.given_name || profile.first_name || profile.name || '';
+      const lastName = profile.family_name || profile.last_name || '';
       
       form.reset({
         ...form.getValues(),
@@ -77,7 +85,7 @@ export function SignUpPage() {
         setActiveStep(2);
       }
     }
-  }, [userData, loginType, form]);
+  }, [userData, loginType, form, activeStep]);
 
   const steps = [
     { 
@@ -169,6 +177,83 @@ export function SignUpPage() {
     }
   };
 
+  const handleSocialLogin = async (userInfo, token, type) => {
+    try {
+      setIsProcessing(true);
+      setError(null);
+
+      const email = userInfo.email || userInfo.userID; 
+      if (!email) {
+        toast.error(`${type} registration failed: No email received.`);
+        return;
+      }
+
+      // Format social data
+      const formattedData = formatSocialData(userInfo, token, type);
+
+      // Check if user exists
+      const checkRes = await checkUserExist(email);
+      const decryptedCheck = await decryptResponse(checkRes);
+      const userObj = decryptedCheck?.Return?.User?.tblUser?.[0];
+      const userId = userObj?.User_Id;
+//  console.log(userObj, "userObj",userId)
+      if (userId && userId !== 0) {
+        // User already exists! Perform direct login instead of registration
+        const loginPayload = {
+          email,
+          loginType: type,
+          userId,
+          googleJson: type === 'Google' ? formattedData : null,
+          facebookJson: type === 'Facebook' ? formattedData : null,
+          appleJson: type === 'Apple' ? formattedData : null,
+          Salutation_Cd: userObj.Salutation_Cd,
+          First_Name: userObj.First_Name,
+          Middle_Name: userObj.Middle_Name,
+          Last_Name: userObj.Last_Name,
+          Full_Name: userObj.Full_Name,
+        };
+
+        const loginRes = await loginApi(loginPayload);
+        const decryptedLogin = await decryptResponse(loginRes);
+        const message = decryptedLogin?.[0]?.Message;
+
+        if (message?.Body === 'Login Successful') {
+          toast.success("Account found. Logging you in...");
+          dispatch(authSuccess({ 
+            userData: loginRes,
+            token: decryptedLogin?.[0]?.Return?.Token || token,
+            loginType: type 
+          }));
+
+          const path = (userObj.User_Type === 'Jobseeker' || userObj.User_Type === 'Employee') ? '/profile' : '/company-profile';
+          navigate(path);
+          return;
+        }
+      }
+
+      // User does not exist, proceed with pre-filled signup
+      setIsSocialSignup(true);
+      dispatch(authSuccess({ 
+        userData: { [`${type.toLowerCase()}Data`]: formattedData },
+        loginType: type 
+      }));
+      
+      form.reset({
+        ...form.getValues(),
+        email: email,
+        firstName: formattedData.given_name || formattedData.first_name || formattedData.name || '',
+        lastName: formattedData.family_name || formattedData.last_name || '',
+      });
+
+      setActiveStep(2);
+    } catch (err) {
+      console.error(`${type} signup error:`, err);
+      setError(`Failed to process ${type} account.`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleBack = () => {
     setError("");
     form.clearErrors();
@@ -198,55 +283,77 @@ export function SignUpPage() {
       CompanyNm: values.role === 'employer' ? normalize(values.companyName) : null,
       loginType: loginType || "EMail",
       userJson: regularUser,
-      googleJson: loginType === 'Google' ? userData : {},
-      facebookJson: loginType === 'Facebook' ? userData : {},
-      appleJson: loginType === 'Apple' ? userData : {},
+      appleJson: userData?.appleData || {},
+      googleJson: userData?.googleData || {},
+      facebookJson: userData?.facebookData || {},
     };
   };
 
   async function onSubmit(values) {
     try {
-      console.log("hello")
+      console.log("Submit triggered with values:", values);
       setIsProcessing(true);
       setError(null);
 
       const payload = buildPayload(values);
-      console.log(payload);
+      console.log("Registration Payload:", payload);
       
       const res = await registerUser(payload);
-      console.log(res);
-      const decryptedData = await decryptResponse(res)
-      console.log("decryptedData",decryptedData);
+      const decryptedData = await decryptResponse(res);
+      console.log("Decrypted Data", decryptedData)
       const resultObj = decryptedData?.[0]?.Result || {};
       const { Answer, Action } = resultObj;
+      const userObj = decryptedData?.[0]?.Return?.User?.tblUser?.[0];
 
-      if (Answer === 12 || (Answer === 1 && Action === "User Registered")) {
-        // Success: Replace temporary step-wise data with RAW response from API
+      if (Answer === 12 && Action === "User Registered" && userObj?.Status_Id === 12) {
+        // Success but needs verification
         dispatch(authSuccess({ 
           userData: res,
           token: decryptedData?.[0]?.Return?.Token || null,
           loginType: loginType || 'EMail'
         }));
 
-        setSuccessMessage('Welcome! Your account has been created. Redirecting to verification...');
+        setSuccessMessage('Welcome! Please verify your account to continue.');
         setTimeout(() => {
           navigate('/auth/signup-verification', { state: { email: values.email } });
         }, 1500);
+      } else if (Answer === 1 || Action === "User Active") {
+        // Social signup or no verification needed
+        dispatch(authSuccess({ 
+          userData: res,
+          token: decryptedData?.[0]?.Return?.Token || null,
+          loginType: loginType || 'EMail'
+        }));
+
+        const userType = userObj?.User_Type;
+        const redirectPath = (userType === "Jobseeker" || userType === "Employee") ? "/auth/signup-onboarding" : "/auth/signup-onboarding"; 
+        
+        setSuccessMessage('Welcome back! Redirecting...');
+        setTimeout(() => {
+          navigate(redirectPath);
+        }, 1500);
       } else {
-        setError(res?.Message?.Display || "We couldn't create your account right now. Please try again later.");
+        const errMsg = decryptedData?.[0]?.Message?.Display || "We couldn't create your account right now. Please try again later.";
+        setError(errMsg);
       }
     } catch (err) {
-      console.error('Registration error:', err);
-      setError(err?.data?.error || err.message || 'A server error occurred. Please try again.');
+      console.error("Registration submission error:", err);
+      setError("Registration failed. Please try again.");
     } finally {
       setIsProcessing(false);
     }
   }
 
+  const onInvalid = (errors) => {
+    console.error("Form Validation Errors:", errors);
+    const firstError = Object.values(errors)[0];
+    if (firstError) toast.error(firstError.message || "Please fix form errors.");
+  };
+
   const renderStep = () => {
     const currentStepConfig = steps.find(s => s.id === activeStep);
     switch (activeStep) {
-      case 1: return <SocialStep form={form} config={currentStepConfig} />;
+      case 1: return <SocialStep form={form} config={currentStepConfig} onSuccess={handleSocialLogin} />;
       case 2: return <RoleStep form={form} config={currentStepConfig} />;
       case 3: return <PasswordStep form={form} config={currentStepConfig} />;
       case 4: return <DetailsStep form={form} config={currentStepConfig} />;
@@ -255,7 +362,7 @@ export function SignUpPage() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 relative">
+    <div className="w-full max-w-5xl h-full flex flex-col justify-center items-center mx-auto space-y-6 relative">
       <div className="absolute top-0 left-0 right-0 z-50 flex justify-center">
         {error && (
           <Alert variant="destructive" className="shadow-lg max-w-md p-2 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -278,8 +385,8 @@ export function SignUpPage() {
 
       <Form {...form}>
         <form 
-          onSubmit={form.handleSubmit(onSubmit)} 
-          className="space-y-1"
+          onSubmit={form.handleSubmit(onSubmit, onInvalid)} 
+          className="space-y-5"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && activeStep < steps.length) {
               e.preventDefault();
@@ -287,7 +394,7 @@ export function SignUpPage() {
             }
           }}
         >
-          <div className="min-h-[500px] flex flex-col justify-center items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="lg:max-h-[500px] xl:min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-500">
             {renderStep()}
           </div>
 

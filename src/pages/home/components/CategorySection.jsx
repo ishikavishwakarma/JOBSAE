@@ -8,11 +8,14 @@ const CategorySection = ({ industries, onNavigate }) => {
   if (!industries || industries.length === 0) return null;
 
   return (
-    <section className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <section className="py-2 bg-linear-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6 relative">
+          {/* Subtle accent line */}
+          <div className="absolute -left-4 top-0 w-1 h-full bg-blue-600 rounded-full opacity-0 lg:opacity-100" />
           <div className="max-w-3xl">
-            <h2 className="text-3xl font-semibold text-slate-900 dark:text-white mb-3 tracking-tight">Explore by category</h2>
+            {/* <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight uppercase text-sm font-bold text-blue-600 mb-2 block tracking-widest">Job Categories</h2> */}
+            <h3 className="text-4xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">Explore by category</h3>
             <p className="text-lg text-slate-600 dark:text-slate-400 font-normal">
               Find the job that matches your skills and career interests.
             </p>
@@ -20,7 +23,7 @@ const CategorySection = ({ industries, onNavigate }) => {
           <Button 
             variant="outline" 
             onClick={() => onNavigate('/jobsnearme/industry')}
-            className="rounded-xl px-8 h-12 text-base font-semibold border-2 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm shrink-0"
+            className="rounded-xl px-8 h-12 text-base font-bold border-2 hover:bg-hw-blue-dark hover:text-white dark:hover:bg-blue-600 transition-all shadow-md shrink-0"
           >
             All categories
           </Button>

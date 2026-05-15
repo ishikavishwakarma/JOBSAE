@@ -58,15 +58,14 @@ export function PasswordStep({ form, config }) {
         subtitle={config?.subtitle} 
       />
 
-      <div className="space-y-6 max-w-md mx-auto w-full">
+      <div className="space-y-3 xl:space-y-6 max-w-md lg:max-w-sm xl:max-w-md mx-auto w-full">
           <DynamicForm fields={passwordFields} form={form} />
-
           <DynamicForm fields={confirmFields} form={form} />
         
 
         <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm transition-all duration-300">
          
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 lg:gap-1 xl:gap-3">
             {checkItems.map((item, index) => (
               <div
                 key={index}

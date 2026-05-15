@@ -81,3 +81,97 @@ export function cleanApiReturn(returnObj) {
 
   return cleaned;
 }
+
+export const formatSocialData = (userInfo, tokenResponse = {}, loginType = "") => {
+  const iat = Math.floor(Date.now() / 1000);
+  const expiresIn =
+    tokenResponse?.expires_in ||
+    tokenResponse?.expiresIn ||
+    userInfo?.expiresIn ||
+    3600;
+  const exp = iat + expiresIn;
+
+  const capitalize = (str) => (str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "");
+
+  switch (loginType) {
+    case "Google":
+      return {
+        iss: "https://accounts.google.com",
+        sub: userInfo?.sub || userInfo?.id || null,
+        aud: tokenResponse?.clientId || null,
+        azp: tokenResponse?.clientId || null,
+        email: userInfo?.email || null,
+        email_verified: userInfo.email_verified || null,
+        name: userInfo?.name || null,
+        given_name: userInfo?.given_name || null,
+        family_name: userInfo?.family_name || null,
+        picture: userInfo?.picture || null,
+        locale: userInfo?.locale || null,
+        hd: userInfo?.hd || null,
+        iat,
+        exp,
+        auth_code: null,
+        token: userInfo.access_token || tokenResponse?.access_token || null,
+      };
+    case "Facebook": {
+      let firstName = userInfo?.first_name || null;
+      let lastName = userInfo?.last_name || null;
+
+      if ((!firstName || !lastName) && userInfo?.name) {
+        const parts = userInfo.name.trim().split(" ");
+        if (parts.length > 1) {
+          firstName = parts[0];
+          lastName = parts.slice(1).join(" ");
+        } else {
+          firstName = parts[0] || null;
+          lastName = null;
+        }
+      }
+      return {
+        id: userInfo?.id || null,
+        email: userInfo?.email || null,
+        name: userInfo?.name || null,
+        first_name: firstName,
+        last_name: lastName,
+        gender: userInfo?.gender || null,
+        birthday: userInfo?.birthday || null,
+        location: userInfo?.location?.name || null,
+        age_range: userInfo?.age_range?.min || null,
+        link: userInfo?.link || null,
+        locale: userInfo?.locale || null,
+        timezone: userInfo?.timezone || null,
+        verified: userInfo.verified || null,
+        picture: userInfo?.picture?.data?.url || userInfo?.picture || null,
+        iat,
+        exp,
+        token: typeof tokenResponse === "string" ? tokenResponse : (tokenResponse?.accessToken || userInfo?.accessToken || null),
+      };
+    }
+    case "Apple":
+      return {
+        user: userInfo?.sub || null,
+        email: userInfo?.email || null,
+        full_name: {
+          given_name: capitalize(userInfo?.first_name || userInfo?.given_name),
+          family_name: capitalize(userInfo?.last_name || userInfo?.family_name),
+        },
+        sub: userInfo?.sub || null,
+        email_verified: userInfo?.email_verified || null,
+        is_private_email: userInfo?.is_private_email || null,
+        auth_time: userInfo?.auth_time || iat,
+        iss: userInfo.iss || "https://appleid.apple.com/",
+        aud: tokenResponse?.clientId || userInfo?.aud || null,
+        exp: userInfo?.exp || null,
+        iat: userInfo?.iat || null,
+        token: typeof tokenResponse === "string" ? tokenResponse : (tokenResponse?.token || userInfo?.token || null),
+      };
+    default:
+      return {
+        email: userInfo?.email || null,
+        name: userInfo?.name || null,
+        token: tokenResponse?.accessToken || null,
+        iat,
+        exp,
+      };
+  }
+};

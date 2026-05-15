@@ -92,9 +92,9 @@ export function JobCard({ job, isActive, onClick }) {
     <div
       onClick={onClick}
       className={cn(
-        "p-3 cursor-pointer border-b border-border transition-all relative group",
+        "p-3 cursor-pointer border rounded-2xl transition-all relative group",
         isActive 
-          ? "bg-slate-50 dark:bg-slate-900/50 border-l-4 border-l-primary shadow-inner" 
+          ? "bg-slate-50 dark:bg-slate-900/50  shadow-inner" 
           : "bg-white dark:bg-slate-950 hover:bg-slate-50/50 dark:hover:bg-slate-900/30"
       )}
     >

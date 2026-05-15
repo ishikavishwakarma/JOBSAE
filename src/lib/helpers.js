@@ -1,3 +1,4 @@
+import { jwtDecode } from "jwt-decode";
 export const throttle = (func, limit) => {
   let lastFunc = null;
   let lastRan = null;
@@ -110,3 +111,11 @@ export function formatDateTime(input) {
     hour12: true,
   });
 }
+export const decodeAppleToken = (idToken) => {
+  try {
+    const decoded = jwtDecode(idToken);
+    return decoded;
+  } catch (error) {
+    return null;
+  }
+};

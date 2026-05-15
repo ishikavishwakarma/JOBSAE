@@ -36,7 +36,7 @@ export function CustomLayout() {
         <Header />
         {/* <Navbar /> */}
 
-        <main className="grow pt-5" role="content">
+        <main className="grow " role="content">
           {item && (
             <Toolbar>
               <ToolbarHeading />

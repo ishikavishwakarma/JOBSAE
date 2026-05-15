@@ -68,7 +68,7 @@ export function DetailsStep({ form, config }) {
         subtitle={config?.subtitle} 
       />
 
-      <div className="w-full max-w-md">
+      <div className="w-full  max-w-md lg:max-w-sm xl:max-w-md">
         <DynamicForm fields={fields} form={form} />
       </div>
     </div>

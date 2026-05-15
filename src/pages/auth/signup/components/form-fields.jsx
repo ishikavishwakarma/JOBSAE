@@ -442,7 +442,7 @@ export const FormMultiSelect = ({
  * Standard Header for Signup Steps
  */
 export const StepHeader = ({ title, subtitle, className }) => (
-  <div className={cn("text-center w-full max-w-md mx-auto mb-8", className)}>
+  <div className={cn("text-center w-full max-w-sm xl:max-w-md mx-auto mb-4 xl:mb-8", className)}>
     <h2 className="text-xl font-bold tracking-tight text-hw-blue-dark dark:text-white sm:text-2xl">
       {title}
     </h2>

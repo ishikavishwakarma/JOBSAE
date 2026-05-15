@@ -68,3 +68,23 @@ export const resolveCurrentLocation = async ({
   // If user denied or coordinates failed, return null
   return null;
 };
+
+/**
+ * Gets the current geolocation permission state.
+ */
+export const getGeoPermissionState = async () => {
+  if (!navigator.permissions) {
+    return null;
+  }
+  try {
+    const permissionStatus = await navigator.permissions.query({
+      name: "geolocation",
+    });
+    // We can optionally attach a listener here if needed
+    permissionStatus.onchange = () => { };
+
+    return permissionStatus.state;
+  } catch (err) {
+    return null;
+  }
+};

@@ -4,7 +4,9 @@ import {
   Search, 
   MapPin, 
   Globe, 
-  ChevronDown 
+  ChevronDown, 
+  Briefcase,
+  LayoutGrid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -15,7 +17,7 @@ import { debounce } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { useDispatch, useSelector } from 'react-redux';
 import { locationData } from '@/services/redux/slice/authSlice';
-import { resolveCurrentLocation } from '@/lib/location';
+import { resolveCurrentLocation, getGeoPermissionState } from '@/lib/location';
 import { useGeoLocationGet } from '@/services/redux/apis/jobApi';
 import { searchJob, selectKeywordData, SearchJobList } from '@/services/redux/slice/jobSlice';
 
@@ -24,15 +26,18 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
   const searchContainerRef = useRef(null);
 
   const [search, setSearch] = useState(() => {
-    const saved = localStorage.getItem("search_keyword_data");
-    if (saved) {
+    const saved = localStorage.getItem("search_keyword_data") 
+    const savedGeo = localStorage.getItem("geo_location_persistent");
+
+    if (saved || savedGeo) {
       try {
-        const data = JSON.parse(saved);
+        const data = JSON.parse(saved) ;
+        const data2 =  JSON.parse(savedGeo);
         return {
           keyword: data.keyword || '',
-          cityState: data.location || '',
-          country: data.country || '',
-          countryCode: data.countryCode || ''
+          cityState: data.location || data.mapLocation || data2.mapLocation || '',
+          country: data.country || data.Country|| data2.Country || '',
+          countryCode: data.countryCode|| data.Country_Cd || data2.Country_Cd || ''
         };
       } catch (e) {
         console.error("Failed to parse saved search data", e);
@@ -83,10 +88,17 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
   const dispatch = useDispatch();
   const keywordData = useSelector(selectKeywordData);
   const [geoPermission, setGeoPermission] = useState('prompt'); // 'prompt', 'granted', 'denied'
-
-  const { getKeywordSuggestions, isLoading: isLoadingKeywords } = useGetKeywordSuggestionList();
+const { getKeywordSuggestions, isLoading: isLoadingKeywords } = useGetKeywordSuggestionList();
   const { getLocationSuggestions, isLoading: isLoadingLocations } = useGetLocationSuggestions();
   const { getGeoLocation } = useGeoLocationGet();
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      const state = await getGeoPermissionState();
+      setGeoPermission(state || 'prompt');
+    };
+    checkPermission();
+  }, []);
 
   const handleUseCurrentLocation = async () => {
     setIsFetchingCurrentLocation(true);
@@ -115,7 +127,7 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
   };
 
   // Combine loading states for general UI if needed, but better to use specific ones
-  const isGlobalLoading = isLoadingKeywords || isLoadingLocations;
+  // const isGlobalLoading = isLoadingKeywords || isLoadingLocations;
 
   // Debounced fetchers
   const fetchKeywordSuggestions = useCallback(
@@ -147,9 +159,9 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
       // getGeoLocation({ Action: "Get" }).then(res => {
       //   const geo = res?.Return?.Geo_Location;
       
-        const geo = localStorage.getItem("user_location") ;
+        const geo = localStorage.getItem("geo_location_persistent") ;
       
-        if (geo) setDetectedLocation(geo);
+        if (geo) setDetectedLocation(JSON.parse(geo));
       // }).catch(err => console.error("Initial geo fetch failed", err));
 
       const res = await getLocationSuggestions({
@@ -342,45 +354,7 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
           )}
         </div>
 
-        <div className="relative w-16 flex items-center px-2 border-r border-border/50">
-          <input 
-            type="text" 
-            placeholder="IN" 
-            className="w-full bg-transparent border-none py-1.5 px-1 text-sm text-center font-bold uppercase focus:ring-0 placeholder:text-muted-foreground/70 outline-none"
-            value={search.countryCode}
-            onChange={(e) => {
-              const val = e.target.value.toUpperCase().slice(0, 2);
-              setSearch({ ...search, countryCode: val });
-              
-              // Local filtering
-              const filtered = allCountries.filter(c => 
-                c.Country.toLowerCase().includes(val.toLowerCase()) || 
-                (c.Flag_Cd && c.Flag_Cd.toLowerCase().includes(val.toLowerCase()))
-              );
-              setSuggestions(prev => ({ ...prev, countries: filtered }));
-              setActiveDropdown('country');
-            }}
-            onFocus={() => {
-              setSuggestions(prev => ({ ...prev, countries: allCountries }));
-              setActiveDropdown('country');
-            }}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          />
-          {activeDropdown === 'country' && suggestions.countries.length > 0 && (
-            <SuggestionDropdown 
-              items={suggestions.countries} 
-              type="country" 
-              variant="header"
-              onSelect={(item) => {
-                setSearch({ ...search, country: item.Country, countryCode: item.Flag_Cd || item.Country.slice(0, 2).toUpperCase() });
-                setSelectedCountryId(item.Country_Id);
-                setActiveDropdown(null);
-              }} 
-            />
-          )}
-        </div>
-
-        <div className="relative flex-1 flex items-center px-3">
+        <div className="relative flex-1 flex items-center px-3 border-r border-border/50">
           <MapPin className="size-4 text-muted-foreground shrink-0" />
           <input 
             type="text" 
@@ -393,11 +367,13 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
               setActiveDropdown('location');
             }}
             onFocus={() => {
-              if (suggestions.locations.length > 0) setActiveDropdown('location');
+              if (suggestions.locations.length > 0 || detectedLocation) {
+                setActiveDropdown('location');
+              }
             }}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
-          {activeDropdown === 'location' && (suggestions.locations.length > 0 || isLoadingLocations || isFetchingCurrentLocation) && (
+          {activeDropdown === 'location' && (suggestions.locations.length > 0 || isLoadingLocations || isFetchingCurrentLocation || detectedLocation) && (
             <SuggestionDropdown 
               items={suggestions.locations} 
               type="location" 
@@ -422,6 +398,56 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
           )}
         </div>
 
+        <div className="relative w-20 flex items-center px-2">
+          <div className="flex items-center gap-1.5 w-full">
+            {selectedCountryFlag ? (
+              <img 
+                src={`https://flagcdn.com/w40/${selectedCountryFlag.toLowerCase()}.png`} 
+                alt="flag"
+                className="w-4 h-2.5 object-cover rounded-sm shadow-sm shrink-0"
+              />
+            ) : (
+              <Globe className="size-3.5 text-muted-foreground shrink-0" />
+            )}
+            <input 
+              type="text" 
+              placeholder="Code" 
+              className="w-full bg-transparent border-none py-1.5 px-0 text-sm font-bold uppercase focus:ring-0 placeholder:text-muted-foreground/70 outline-none"
+              value={search.countryCode}
+              onChange={(e) => {
+                const val = e.target.value.toUpperCase().slice(0, 2);
+                setSearch({ ...search, countryCode: val });
+                
+                // Local filtering
+                const filtered = allCountries.filter(c => 
+                  c.Country.toLowerCase().includes(val.toLowerCase()) || 
+                  (c.Flag_Cd && c.Flag_Cd.toLowerCase().includes(val.toLowerCase()))
+                );
+                setSuggestions(prev => ({ ...prev, countries: filtered }));
+                setActiveDropdown('country');
+              }}
+              onFocus={() => {
+                setSuggestions(prev => ({ ...prev, countries: allCountries }));
+                setActiveDropdown('country');
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+          </div>
+          {activeDropdown === 'country' && suggestions.countries.length > 0 && (
+            <SuggestionDropdown 
+              items={suggestions.countries} 
+              type="country" 
+              variant="header"
+              onSelect={(item) => {
+                setSearch({ ...search, country: item.Country, countryCode: item.Flag_Cd || item.Country.slice(0, 2).toUpperCase() });
+                setSelectedCountryId(item.Country_Id);
+                setSelectedCountryFlag(item.Flag_Cd || item.Country.slice(0, 2).toUpperCase());
+                setActiveDropdown(null);
+              }} 
+            />
+          )}
+        </div>
+
         <Button 
           onClick={handleSearch}
           size="icon" 
@@ -437,10 +463,9 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
       </div>
     );
   }
-
   // Home Page Variant
   return (
-    <div className="relative  w-full" ref={searchContainerRef}>
+    <div className="relative z-30 w-full" ref={searchContainerRef}>
       <div className="bg-white h-52 md:h-fit py-1 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)]  flex flex-col md:flex-row items-center gap-0 group transition-all hover:border-blue-500 dark:hover:border-blue-400">
         
         <SearchInput 
@@ -479,6 +504,12 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
           isLoading={isLoadingLocations || isFetchingCurrentLocation}
           showUseCurrentLocation={true}
           detectedLocation={detectedLocation}
+          onFocus={() => {
+            if (detectedLocation || suggestions.locations.length > 0 || true) {
+              // Always open on focus to allow "Use current location" selection
+              setActiveDropdown('cityState');
+            }
+          }}
           onUseCurrentLocation={handleUseCurrentLocation}
           onChange={val => {
             setFormError("");
@@ -534,7 +565,7 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
 
         <div className="w-full md:w-auto p-1">
           <Button 
-            className="w-full md:w-auto h-10 px-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-70"
+            className="w-full md:w-auto h-10 px-12 bg-hw-blue-light text-white font-semibold text-lg rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-70"
             onClick={handleSearch}
             disabled={searchLoading}
           >
@@ -557,11 +588,8 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
       )}
 
       {/* Popular Searches */}
-      <div className="mt-10 text-center">
-        <span className="text-lg font-semibold text-slate-900 dark:text-slate-200 block md:inline mb-3 md:mb-0 mr-4">
-          Popular searches:
-        </span>
-        <div className="inline-flex flex-wrap justify-center gap-x-6 gap-y-3">
+      <div className="mt-10 flex flex-col items-center gap-8 text-center mx-auto">
+        <div className="inline-flex flex-wrap justify-center gap-x-6 gap-y-3 w-[70%]">
           {popularKeywords.map((keyword, index) => {
             const path = `/jobsnearme${keyword.URL || keyword.mapKey}`;
             return (
@@ -580,6 +608,32 @@ const JobSearchForm = ({ variant = 'home', popularKeywords = [], onNavigate }) =
               </Link>
             );
           })}
+        </div>
+
+        {/* Small UI for Quick Access */}
+        <div className="flex flex-wrap items-center justify-center gap-3 py-3 px-6 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Quick Access:</span>
+          <div className="hidden sm:block h-4 w-px bg-slate-300 dark:bg-slate-700" />
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <button 
+              onClick={() => onNavigate?.('/jobs/search?q=Google')}
+              className="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2"
+            >
+              <Briefcase className="size-3" /> Top Companies
+            </button>
+            <button 
+              onClick={() => onNavigate?.('/jobsnearme/industry')}
+              className="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2"
+            >
+              <LayoutGrid className="size-3" /> Categories
+            </button>
+            <button 
+              onClick={() => onNavigate?.('/jobsnearme/remote')}
+              className="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2"
+            >
+              <Globe className="size-3" /> Remote Jobs
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -606,7 +660,8 @@ const SearchInput = ({
   onUseCurrentLocation,
   showUseCurrentLocation,
   geoPermission,
-  detectedLocation
+  detectedLocation,
+  onFocus
 }) => (
   <div className={cn("flex-1 relative flex items-center px-6 w-full md:w-auto h-10 transition-colors", className)}>
     <div className="flex items-center gap-2 shrink-0">
@@ -625,7 +680,9 @@ const SearchInput = ({
       className="w-full bg-transparent border-none focus:ring-0 md:text-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 outline-none font-medium"
       value={value}
       onFocus={() => {
-        if (id === 'country' || (suggestions && suggestions.length > 0)) {
+        if (onFocus) {
+          onFocus();
+        } else if (id === 'country' || (suggestions && suggestions.length > 0)) {
           setActiveDropdown(id);
         }
       }}
@@ -639,7 +696,10 @@ const SearchInput = ({
         }
       }}
     />
-    <ChevronDown className={cn("w-5 h-5 text-slate-400 dark:text-slate-500 transition-transform duration-200", activeDropdown === id && "rotate-180")} />
+    <ChevronDown 
+      className={cn("w-5 h-5 text-slate-400 dark:text-slate-500 transition-transform duration-200 cursor-pointer hover:text-blue-500", activeDropdown === id && "rotate-180")} 
+      onClick={() => setActiveDropdown(activeDropdown === id ? null : id)}
+    />
     {activeDropdown === id && (
       <SuggestionDropdown 
         items={suggestions} 
@@ -656,7 +716,6 @@ const SearchInput = ({
     )}
   </div>
 );
-
 const SuggestionDropdown = ({ items, type, onSelect, isLoading, variant = 'home', showUseCurrentLocation, onUseCurrentLocation, detectedLocation, geoPermission }) => {
   return (
     <div 

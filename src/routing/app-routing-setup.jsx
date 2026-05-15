@@ -1,6 +1,8 @@
 import { AuthRouting } from '@/auth/auth-routing';
 import { RequireAuth } from '@/auth/require-auth';
 import { ErrorRouting } from '@/errors/error-routing';
+import { BrandedLayout } from '@/auth/layouts/branded';
+import { SignInPage } from '@/pages/auth';
 import { CustomLayout } from '@/layouts/custom/layout';
 import { Demo1Layout } from '@/layouts/demo1/layout';
 import {
@@ -452,7 +454,9 @@ export function AppRoutingSetup() {
           <Route path="/auth/get-started" element={<AccountGetStartedPage />} />
         </Route>
       </Route>
-      <Route path="signin" element={<Navigate to="/auth/signin" />} />
+      <Route path="signin" element={<BrandedLayout />}>
+        <Route index element={<SignInPage />} />
+      </Route>
       <Route path="signup" element={<Navigate to="/auth/signup" />} />
       <Route path="error/*" element={<ErrorRouting />} />
       <Route path="auth/*" element={<AuthRouting />} />

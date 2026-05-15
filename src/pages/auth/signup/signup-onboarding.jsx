@@ -72,6 +72,7 @@ export function SignUpOnboardingPage() {
       const formatted = keywords.map((item) => ({
         id: item.Keyword_Id,
         name: item.Keyword,
+        groupId: item.Keyword_Group_Id
       }));
       setAvailableKeywords(formatted);
       return true;
@@ -98,6 +99,7 @@ export function SignUpOnboardingPage() {
       const formatted = subKeywords.map((item) => ({
         id: item.Keyword_Id,
         name: item.Keyword,
+        groupId: item.Keyword_Group_Id
       }));
       setAvailableSubKeywords(formatted);
       return true;
@@ -209,7 +211,7 @@ export function SignUpOnboardingPage() {
       case 1:
         return <KeywordsStep form={form} options={availableKeywords} />;
       case 2:
-        return <SubKeywordsStep form={form} options={availableSubKeywords} />;
+        return <SubKeywordsStep form={form} options={availableSubKeywords} parentOptions={availableKeywords} />;
       case 3:
         return <LocationStep form={form} />;
       default:
@@ -223,7 +225,7 @@ export function SignUpOnboardingPage() {
     <div className="w-full max-w-5xl mx-auto space-y-6">
             <Form {...form}>
         <form className="space-y-1">
-          <div className="min-h-[450px] flex flex-col justify-center items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="xl:min-h-[450px] lg:min-h-[350px] flex flex-col justify-center items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
             {renderStep()}
           </div>
 

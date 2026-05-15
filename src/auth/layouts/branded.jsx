@@ -31,9 +31,9 @@ export function BrandedLayout() {
         {/* Right Section: Interactive Form */}
         <div className="flex flex-col justify-center items-center p-8 lg:p-5 order-2 lg:order-1 bg-white dark:bg-slate-900 relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
-          <div className="w-full">
+          {/* <div className="w-full"> */}
             <Outlet />
-          </div>
+          {/* </div> */}
         </div>
       </div>
     </div>

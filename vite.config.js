@@ -1,3 +1,4 @@
+
 import { fileURLToPath, URL } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -18,7 +19,11 @@ export default defineConfig({
     chunkSizeWarningLimit: 3000,
   },
   server: {
-    port: 5174,
+    port: 5173,
     strictPort: true,
+    host: '127.0.0.1',
+    hmr: {
+      host: '127.0.0.1',
+    },
   },
 });

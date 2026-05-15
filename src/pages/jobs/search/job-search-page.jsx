@@ -157,8 +157,8 @@ export default function JobSearchPage() {
       <JobFilters defaultKeyword={keyword} />
       
       <main className="grow">
-        <Container className="py-6 h-[calc(100vh-140px)]">
-          <div className="flex bg-card border border-border rounded-2xl overflow-hidden h-full shadow-xl shadow-black/5">
+        <Container className="py-0 h-[calc(100vh-120px)]">
+          <div className="flex bg-background h-full overflow-hidden">
             {/* Left List */}
             <div className="w-full lg:w-[420px] border-r border-border flex flex-col shrink-0 bg-background">
               <div className="p-3 border-b border-border bg-card/30 flex justify-between items-center">
@@ -171,7 +171,7 @@ export default function JobSearchPage() {
                 </div>
                 <Button variant="ghost" size="icon" className="size-8 rounded-lg"><Share2 className="size-4" /></Button>
               </div>
-              <div className="flex-1 overflow-y-auto no-scrollbar divide-y divide-border/50">
+              <div className="flex-1 space-y-2 p-2 overflow-y-auto no-scrollbar divide-y divide-border/50">
                 {isFetching && page === 1 ? (
                   <div className="flex flex-col items-center justify-center h-64 gap-4">
                     <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />

@@ -164,7 +164,7 @@ export function LocationStep({ form }) {
         // icon={MapPin}
       />
 
-      <div className="w-full max-w-md space-y-6">
+      <div className="w-full  max-w-sm xl:max-w-md space-y-4">
         {/* Country Selector */}
         <FormField
           control={form.control}

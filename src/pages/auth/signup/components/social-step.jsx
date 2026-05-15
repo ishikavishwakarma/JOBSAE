@@ -4,11 +4,12 @@ import { useDispatch } from 'react-redux';
 import { authRequest, authSuccess, authFailure } from '@/services/redux/slice/authSlice';
 import { googleAuthApi } from '@/services/api/socialAuth';
 import { toast } from 'sonner';
+import { decryptResponse, formatSocialData } from '@/utils/helpers/apiHelper';
 import { Icons } from '@/components/common/icons';
 import { Button } from '@/components/ui/button';
 import { LoaderCircleIcon, Mail } from 'lucide-react';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { FormIconInput, StepHeader } from './form-fields';
 
 export function SocialStep({ form, config, onSuccess }) {
@@ -37,18 +38,15 @@ export function SocialStep({ form, config, onSuccess }) {
           return;
         }
 
+        const formattedData = formatSocialData(userInfo, tokenResponse, "Google");
+
         if (onSuccess) {
-          await onSuccess(userInfo, tokenResponse, "Google");
+          await onSuccess(formattedData, tokenResponse, "Google");
           return;
         }
 
-        const mergedGoogleData = {
-          ...userInfo,
-          ...tokenResponse,
-        };
-
         dispatch(authSuccess({
-          userData: mergedGoogleData,
+          userData: { googleData: formattedData },
           token: tokenResponse.access_token,
           loginType: "Google",
         }));
@@ -83,13 +81,15 @@ export function SocialStep({ form, config, onSuccess }) {
         return;
       }
 
+      const formattedData = formatSocialData(response, response.accessToken, "Facebook");
+
       if (onSuccess) {
-        await onSuccess(response, response.accessToken, "Facebook");
+        await onSuccess(formattedData, response.accessToken, "Facebook");
         return;
       }
 
       dispatch(authSuccess({
-        userData: response,
+        userData: { facebookData: formattedData },
         token: response.accessToken,
         loginType: "Facebook",
       }));
@@ -116,23 +116,27 @@ export function SocialStep({ form, config, onSuccess }) {
     window.location.href = `https://appleid.apple.com/auth/authorize?${params}`;
   };
 
+  const { pathname } = useLocation();
+  const isSignIn = pathname.includes('signin');
+  const actionText = isSignIn ? "Sign In" : "Sign Up";
+
   const GoogleIcon = Icons?.googleColorful || (() => <span className="size-5">G</span>);
   const FacebookIcon = Icons?.facebook || (() => <span className="size-5">F</span>);
   const AppleIcon = Icons?.apple || (() => <span className="size-5">A</span>);
 
   return (
-    <div className="space-y-6 flex flex-col items-center w-full">
+    <div className="xl:space-y-6  lg:space-y-4 flex flex-col items-center w-full">
       <StepHeader 
         title={config?.title} 
         subtitle={config?.subtitle} 
       />
 
-      <div className="flex flex-col gap-3.5 w-full max-w-md">
+      <div className="flex flex-col gap-3.5 w-full lg:max-w-sm xl:max-w-md">
         {/* Google Button */}
         <Button
           variant="outline"
           type="button"
-          className="w-full justify-start gap-4 h-12 px-2 bg-hw-blue-dark hover:bg-hw-blue-dark/90 border-transparent transition-all group shadow-md"
+          className="w-full justify-start gap-2 xl:gap-4 h-12 lg:h-10 xl:h-12 px-2 bg-hw-blue-dark hover:bg-hw-blue-dark/90 border-transparent transition-all group shadow-md"
           onClick={() => googleLogin()}
           disabled={Object.values(isSocialLoading).some(Boolean)}
         >
@@ -140,10 +144,10 @@ export function SocialStep({ form, config, onSuccess }) {
             {isSocialLoading.google ? (
               <LoaderCircleIcon className="size-5 animate-spin text-primary" />
             ) : (
-              <GoogleIcon className="size-5" />
+              <GoogleIcon className="size-5 lg:size-4 xl:size-5" />
             )}
           </div>
-          <span className="font-semibold text-white">Sign Up with Google</span>
+          <span className="font-semibold text-white">{actionText} with Google</span>
         </Button>
 
         {/* Facebook Button (using render props) */}
@@ -156,7 +160,7 @@ export function SocialStep({ form, config, onSuccess }) {
             <Button
               variant="outline"
               type="button"
-              className="w-full justify-start gap-4 h-12 px-2 bg-hw-blue-dark hover:bg-hw-blue-dark/90 border-transparent transition-all group shadow-md"
+              className="w-full justify-start gap-2 xl:gap-4 h-12 lg:h-10 xl:h-12 px-2 bg-hw-blue-dark hover:bg-hw-blue-dark/90 border-transparent transition-all group shadow-md"
               onClick={renderProps.onClick}
               disabled={Object.values(isSocialLoading).some(Boolean)}
             >
@@ -167,7 +171,7 @@ export function SocialStep({ form, config, onSuccess }) {
                   <FacebookIcon className="size-5 text-[#1877F2]" />
                 )}
               </div>
-              <span className="font-semibold text-white">Sign Up with Facebook</span>
+              <span className="font-semibold text-white">{actionText} with Facebook</span>
             </Button>
           )}
         />
@@ -176,7 +180,7 @@ export function SocialStep({ form, config, onSuccess }) {
         <Button
           variant="outline"
           type="button"
-          className="w-full justify-start gap-4 h-12 px-2 bg-hw-blue-dark hover:bg-hw-blue-dark/90 border-transparent transition-all group shadow-md"
+          className="w-full justify-start gap-2 xl:gap-4 h-12 lg:h-10 xl:h-12 px-2 bg-hw-blue-dark hover:bg-hw-blue-dark/90 border-transparent transition-all group shadow-md"
           onClick={handleAppleLogin}
           disabled={Object.values(isSocialLoading).some(Boolean)}
         >
@@ -187,11 +191,11 @@ export function SocialStep({ form, config, onSuccess }) {
               <AppleIcon className="size-5 text-black" />
             )}
           </div>
-          <span className="font-semibold text-white">Sign Up with Apple</span>
+          <span className="font-semibold text-white">{actionText} with Apple</span>
         </Button>
       </div>
 
-      <div className="mt-4 mb-6 relative flex items-center justify-center w-full max-w-md">
+      <div className="mt-4 mb-6 relative flex items-center justify-center w-full  max-w-sm xl:max-w-md">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t border-muted-foreground/20" />
         </div>
@@ -200,7 +204,7 @@ export function SocialStep({ form, config, onSuccess }) {
         </div>
       </div>
 
-      <div className="w-full  max-w-md">
+      <div className="w-full max-w-sm xl:max-w-md">
         <FormIconInput 
           form={form} 
           name="email" 

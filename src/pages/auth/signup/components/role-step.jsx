@@ -23,13 +23,13 @@ export function RoleStep({ form, config }) {
   ];
 
   return (
-    <div className="space-y-6 flex flex-col items-center w-full">
+    <div className="lg:space-y-4 xl:space-y-6 flex flex-col items-center w-full">
       <StepHeader 
         title={config?.title} 
         subtitle={config?.subtitle} 
       />
 
-      <div className="w-full max-w-md">
+      <div className="w-full  max-w-md lg:max-w-sm xl:max-w-md">
         <FormField
           control={form.control}
           name="role"

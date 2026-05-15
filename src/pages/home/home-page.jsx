@@ -12,8 +12,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { findByKey } from '@/lib/helpers';
-import { resolveCurrentLocation } from '@/lib/location';
-import { useGeoLocationGet } from '@/services/redux/apis/jobApi';
+import { resolveCurrentLocation, getGeoPermissionState } from '@/lib/location';
+import { useGeoLocationGet, useGetLocationSuggestions } from '@/services/redux/apis/jobApi';
 import { useHomeList } from '@/services/redux/apis/profileApi';
 import { locationData } from '@/services/redux/slice/authSlice';
 import { setHomeData } from '@/services/redux/slice/profileSlice';
@@ -86,14 +86,17 @@ const HomePage = () => {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
 
-  const handleNavigationGuard = (destination) => {
-    if (localStorage.getItem('location_permission_granted') === 'true') {
-      navigate(destination);
+  const handleNavigationGuard = async (destination) => {
+    const state = await getGeoPermissionState();
+    console.log(state)
+    if (state === 'prompt') {
+      setPendingNavigation(destination);
+      setShowLocationModal(true);
       return;
     }
 
-    setPendingNavigation(destination);
-    setShowLocationModal(true);
+    // If granted or denied, proceed directly
+    navigate(destination);
   };
 
   const handleAllowLocation = async () => {
@@ -131,26 +134,29 @@ const HomePage = () => {
   return (
     <div className="flex flex-col min-h-screen font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       {/* 1. Hero Section */}
-      <section className="relative pt-10 pb-20 lg:pt-18 lg:pb-32 overflow-hidden bg-linear-to-b from-white to-blue-50/50 dark:from-slate-950 dark:to-slate-900/50">
-        {/* Subtle background decoration */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-blue-500/5 dark:bg-blue-500/10 blur-[140px] rounded-full pointer-events-none" />
+      <section className="relative pt-32 pb-10  bg-linear-to-b from-hw-blue-dark/70 via-white to-white">
+        {/* Background decorations with separate overflow control */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-blue-400/10 dark:bg-blue-400/15 blur-[160px] rounded-full" />
+          <div className="absolute -top-24 -right-24 size-96 bg-blue-500/10 blur-[120px] rounded-full animate-pulse" />
+        </div>
 
-        <Container>
+        <Container className="relative z-20">
           <div className="relative z-10 text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl lg:text-5xl font-extrabold text-hw-blue-dark dark:text-white leading-[1.1] mb-6 tracking-tight">
+            <h1 className="text-4xl lg:text-5xl font-black text-hw-blue-dark leading-[1.1] mb-6 tracking-tight drop-shadow-sm">
               Discover your next{' '}
-              <span className="text-blue-600 dark:text-blue-400">
+              {/* <span className="bg-linear-to-r from-blue-300 to-blue-100 bg-clip-text text-transparent drop-shadow-md"> */}
                 career milestone
-              </span>
+              {/* </span> */}
             </h1>
-            <p className="md:text-lg text-base text-hw-blue-dark/80 dark:text-slate-400 mb-12 max-w-2xl mx-auto font-medium">
+            <p className="md:text-lg text-base text-hw-blue-light mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
               Access millions of opportunities and expert insights to find the
               role that truly fits your life and ambition.
             </p>
           </div>
 
           {/* Unified Search Component */}
-          <div className="relative z-10 max-w-5xl mx-auto">
+          <div className="relative z-10 max-w-5xl mx-auto drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
             <JobSearchForm
               popularKeywords={TopJobCategories}
               variant="home"
@@ -162,9 +168,8 @@ const HomePage = () => {
 
       {/* 2. Categories Section */}
       {isHomeLoading ? (
-        <section className="py-24 bg-slate-50 dark:bg-slate-950">
+        <section className="py-4 bg-slate-50 dark:bg-slate-950">
           <Container>
-            <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded w-1/4 mx-auto mb-16 animate-pulse" />
             <SectionSkeleton items={6} columns={3} />
           </Container>
         </section>

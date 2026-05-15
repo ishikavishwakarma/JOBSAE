@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/auth/context/auth-context';
 import { getSigninSchema } from '@/auth/forms/signin-schema';
-import { decryptResponse } from '@/utils/helpers/apiHelper';
+import { decryptResponse, formatSocialData } from '@/utils/helpers/apiHelper';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertCircle,
@@ -16,10 +16,19 @@ import {
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCheckUserExist, useLogin } from '@/services/redux/apis/userApi';
-import { authSuccess, updateUserData, setVerifyData } from '@/services/redux/slice/authSlice';
+import {
+  authSuccess,
+  setVerifyData,
+  updateUserData,
+} from '@/services/redux/slice/authSlice';
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -33,6 +42,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Icons } from '@/components/common/icons';
+import { decodeAppleToken } from '../../../lib/helpers';
 import { SocialStep } from '../signup/components/social-step';
 
 export function SignInPage() {
@@ -55,7 +65,32 @@ export function SignInPage() {
   });
 
   const appId = import.meta.env.VITE_FACEBOOK_AUTH_APP_ID;
+  const locationQuery = useLocation();
+  useEffect(() => {
+    const queryParams = new URLSearchParams(locationQuery.search);
+    const allParams = Object.fromEntries(queryParams.entries());
+    if (allParams?.id_token) {
+      try {
+        const decodedToken = decodeAppleToken(allParams?.id_token);
+        console.log('Decoded Token', decodedToken,allParams);
+        const mergedAppleData = {
+          ...allParams,
+          ...decodedToken,
+        };
+        dispatch(
+          authSuccess({
+            userData: { appleData: mergedAppleData },
+            token: allParams.id_token,
+            loginType: 'Apple',
+          }),
+        );
 
+        handleSocialLogin(mergedAppleData, allParams.id_token, 'Apple');
+      } catch (err) {
+        dispatch(appleAuth.failure(err));
+      }
+    }
+  }, [dispatch, locationQuery.search]);
   // Check for success message from password reset or error messages
   useEffect(() => {
     const pwdReset = searchParams.get('pwd_reset');
@@ -116,6 +151,9 @@ export function SignInPage() {
         return;
       }
 
+      // Format social data
+      const formattedData = formatSocialData(userInfo, token, type);
+
       // Update form state and Redux for persistence
       form.setValue('email', email);
       dispatch(updateUserData({ email, loginType: type }));
@@ -123,20 +161,20 @@ export function SignInPage() {
       // Check if user exists
       const checkRes = await checkUserExist(email);
       dispatch(setVerifyData(checkRes)); // Persist for temporary use
-      
-      const decryptedCheck = await decryptResponse(checkRes);
-      const userObj = decryptedCheck?.[0]?.Return?.User?.tblUser?.[0];
-      const userId = userObj?.User_Id;
 
+      const decryptedCheck = await decryptResponse(checkRes);
+      const userObj = decryptedCheck?.Return?.User?.tblUser?.[0];
+      const userId = userObj?.User_Id;
+      // console.log(userObj, "userObj",userId)
       if (userId && userId !== 0) {
         // User exists, perform login
         const loginPayload = {
           email,
           loginType: type,
           userId,
-          googleJson: type === 'Google' ? { ...userInfo, ...token } : null,
-          facebookJson: type === 'Facebook' ? userInfo : null,
-          appleJson: type === 'Apple' ? userInfo : null,
+          googleJson: type === 'Google' ? formattedData : null,
+          facebookJson: type === 'Facebook' ? formattedData : null,
+          appleJson: type === 'Apple' ? formattedData : null,
           Salutation_Cd: userObj.Salutation_Cd,
           First_Name: userObj.First_Name,
           Middle_Name: userObj.Middle_Name,
@@ -146,6 +184,7 @@ export function SignInPage() {
 
         const loginRes = await loginApi(loginPayload);
         const decryptedLogin = await decryptResponse(loginRes);
+        console.log('Decrypted Login', decryptedLogin);
         const message = decryptedLogin?.[0]?.Message;
 
         if (message?.Body === 'Login Successful') {
@@ -178,7 +217,12 @@ export function SignInPage() {
       } else {
         // New user, redirect to signup
         toast.warning('Account not found. Please create an account.');
-        dispatch(updateUserData({ email, loginType: type }));
+        dispatch(
+          authSuccess({
+            userData: { [`${type.toLowerCase()}Data`]: formattedData },
+            loginType: type,
+          }),
+        );
         navigate('/auth/signup', { state: { email, isSocialSignup: true } });
       }
     } catch (err) {
@@ -208,7 +252,7 @@ export function SignInPage() {
 
       const res = await checkUserExist(email);
       dispatch(setVerifyData(res)); // Save to Redux verifyData for Step 2 or other flows
-      
+
       // const decryptedCheck = await decryptResponse(res);
       const userObj = res?.Return?.User?.tblUser?.[0];
       const userId = userObj?.User_Id;
@@ -355,20 +399,21 @@ export function SignInPage() {
               }}
             />
 
-            <div className="max-w-md flex justify-end mx-auto">
-
-            <Button
-              type="button"
-              onClick={handleContinue}
-              className="w-fit h-8 text-base min-w-[140px] font-semibold"
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <LoaderCircleIcon className="h-5 w-5 animate-spin" />
-              ) : (
-                <>Continue <ChevronRight className="size-4" /></>
-              )}
-            </Button>
+            <div className="max-w-sm xl:max-w-md flex justify-end mx-auto">
+              <Button
+                type="button"
+                onClick={handleContinue}
+                className="w-fit h-8 text-base min-w-[140px] font-semibold"
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <LoaderCircleIcon className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    Continue <ChevronRight className="size-4" />
+                  </>
+                )}
+              </Button>
             </div>
           </>
         ) : (
@@ -437,50 +482,29 @@ export function SignInPage() {
                   Forgot Password?
                 </Link>
               </div>
- <div className="flex max-w-md mx-auto text-base justify-between items-center pt-5 ">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setActiveStep(1)}
-              className="gap-2 border-hw-blue-dark text-hw-blue-dark hover:bg-transparent hover:text-hw-blue-dark dark:border-white dark:text-white dark:hover:bg-transparent dark:hover:text-white transition-none"
-            >
-              <ChevronLeft className="size-4" /> Back
-            </Button>
-
-             
-              <Button
-                type="submit"
-                disabled={isProcessing}
-                className="gap-2 px-8 min-w-[100px]"
-              >
-                {isProcessing ? (
-                  <LoaderCircleIcon className="size-4 animate-spin" />
-                ) : (
-                  'Login'
-                )}
-              </Button>
-          </div>
-              {/* <div className="flex gap-4">
+              <div className="flex max-w-md mx-auto text-base justify-between items-center pt-5 ">
                 <Button
-                  variant="outline"
                   type="button"
+                  variant="outline"
                   onClick={() => setActiveStep(1)}
-                  className="flex-1 h-12"
+                  className="gap-2 border-hw-blue-dark text-hw-blue-dark hover:bg-transparent hover:text-hw-blue-dark dark:border-white dark:text-white dark:hover:bg-transparent dark:hover:text-white transition-none"
                 >
-                  <ChevronLeft className="mr-2 size-4" /> Back
+                  <ChevronLeft className="size-4" /> Back
                 </Button>
+
                 <Button
                   type="submit"
-                  className="flex-[2] h-12 text-lg font-semibold"
                   disabled={isProcessing}
+                  className="gap-2 px-8 min-w-[100px]"
                 >
                   {isProcessing ? (
-                    <LoaderCircleIcon className="h-5 w-5 animate-spin" />
+                    <LoaderCircleIcon className="size-4 animate-spin" />
                   ) : (
                     'Login'
                   )}
                 </Button>
-              </div> */}
+              </div>
+              
             </div>
           </>
         )}

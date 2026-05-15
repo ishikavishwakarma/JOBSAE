@@ -9,13 +9,6 @@ export function KeywordsStep({ form, options = [] }) {
     'Technology',
     'Marketing',
     'Finance',
-    'Healthcare',
-    'Education',
-    'Design',
-    'Sales',
-    'Management',
-    'Engineering',
-    'Data Science',
   ];
 
   const selectedKeywords = form.watch('keywords') || [];
@@ -32,19 +25,19 @@ export function KeywordsStep({ form, options = [] }) {
   };
 
   return (
-    <div className="space-y-6 flex flex-col items-center w-full">
+    <div className="space-y-8 flex flex-col items-center w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <StepHeader 
-        title="Select Keywords" 
-        subtitle="Choose up to 5 keywords that describe your interests" 
+        title="What's your field?" 
+        subtitle="Select up to 5 areas of expertise" 
       />
 
-      <div className="w-full max-w-md">
+      <div className="w-full  max-w-sm xl:max-w-md bg-white dark:bg-slate-900/40 p-6 ">
         <FormField
           control={form.control}
           name="keywords"
           render={({ field }) => (
             <FormItem className="space-y-4">
-              <div className="flex flex-wrap gap-3 justify-center">
+              <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
                 {keywordOptions.map((option) => {
                   const keywordName = typeof option === 'string' ? option : option.name;
                   const isSelected = selectedKeywords.some(k => (typeof k === 'string' ? k : k.name) === keywordName);
@@ -54,21 +47,23 @@ export function KeywordsStep({ form, options = [] }) {
                   return (
                     <Badge
                       key={typeof option === 'string' ? option : option.id || option.name}
-                      variant={isSelected ? 'primary' : 'outline'}
+                      variant={isSelected ? 'default' : 'outline'}
                       className={cn(
-                        'px-4 py-2 text-sm cursor-pointer transition-all gap-2 h-10',
-                        isSelected && 'border border-white ',
-                        isDisabled && 'opacity-50 cursor-not-allowed'
+                        'px-3 py-2.5 text-[14px] sm:text-[15px] font-medium cursor-pointer transition-all duration-200 gap-2 rounded-xl shadow-sm hover:shadow-md border',
+                        isSelected 
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 ' 
+                          : 'bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400',
+                        isDisabled && 'opacity-40 cursor-not-allowed scale-100 hover:shadow-sm hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900 hover:text-slate-700 dark:hover:text-slate-300'
                       )}
                       onClick={() => !isDisabled && toggleKeyword(option, field.onChange)}
                     >
                       {label}
-                      {isSelected && <Check className="size-3" />}
+                      {isSelected && <Check className="size-3.5" strokeWidth={3} />}
                     </Badge>
                   );
                 })}
               </div>
-              <div className="text-center">
+              <div className="text-center pt-4">
                 <FormMessage />
               </div>
             </FormItem>
